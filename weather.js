@@ -118,16 +118,9 @@ function displayWeatherInfo(data){
 
     let setTime;
 
-    if(date.getTimezoneOffset()==240){
-        riseTime = new Date((sunrise+(timezone+(4*60*60)))*1000);
+    riseTime = new Date((sunrise+(timezone+(date.getTimezoneOffset()*60)))*1000);
 
-        setTime = new Date((sunset+timezone+(4*60*60))*1000);
-    }
-    else{
-        riseTime = new Date((sunrise+(timezone+(5*60*60)))*1000);
-
-        setTime = new Date((sunset+timezone+(5*60*60))*1000);
-    }
+    setTime = new Date((sunset+timezone+(date.getTimezoneOffset()*60))*1000);
     
 
     let riseTimeHours = riseTime.getHours();
