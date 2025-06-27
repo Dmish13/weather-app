@@ -12,7 +12,7 @@ const cityHeading = document.querySelector(".City");
 
 let cities = [];
 
-fetch("cities2.json")
+fetch("cities.json")
 .then(response=>response.json())
 .then(values => values.forEach(value => cities.push(value)));
 
