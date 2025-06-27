@@ -203,6 +203,8 @@ function displayError(message){
     errorDisplay.classList.add("errorDisplay");
 
     card.textContent = "";
+
+    cityHeading.textContent = "";
     
     card.style.display = "flex";
     
