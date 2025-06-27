@@ -2,11 +2,46 @@ const weatherForm = document.querySelector(".weatherForm");
 
 const cityInput =document.querySelector(".cityInput");
 
+const suggestions = document.getElementById("suggestions")
+
 const card =document.querySelector(".card");
 
 const apiKey = "9f5bffb9e6298d4e898323325f7dfd2f";
 
 const cityHeading = document.querySelector(".City");
+
+let cities = [];
+
+fetch("cities2.json")
+.then(response=>response.json())
+.then(values => values.forEach(value => cities.push(value)));
+
+console.log(cities);
+
+cityInput.addEventListener("input", () =>{
+    const query = cityInput.value.trim().toLowerCase();
+
+    suggestions.innerHTML = '';
+
+    if(query.length<1) return;
+
+    const matches = cities.filter(city => city.name.toLowerCase().startsWith(query))
+    .slice(0,5);
+
+    matches.forEach(city=> {
+        const li = document.createElement('li');
+
+        li.textContent = `${city.name}, ${city.subcountry}, ${city.country}`;
+
+        li.addEventListener('click', () => {
+            cityInput.value = `${city.name}, ${city.country}`;
+
+            suggestions.innerHTML = '';
+        });
+
+        suggestions.appendChild(li);
+    });
+});
 
 
 weatherForm.addEventListener("submit", async event => {
@@ -118,9 +153,11 @@ function displayWeatherInfo(data){
 
     let setTime;
 
+   
     riseTime = new Date((sunrise+(timezone+(date.getTimezoneOffset()*60)))*1000);
 
     setTime = new Date((sunset+timezone+(date.getTimezoneOffset()*60))*1000);
+    
     
 
     let riseTimeHours = riseTime.getHours();
@@ -165,7 +202,7 @@ function displayWeatherInfo(data){
     card.appendChild(likeDisplay);
 
     card.appendChild(humidityDisplay);
-    
+
     card.appendChild(riseSetdisplay);
     
     
@@ -195,19 +232,13 @@ function getWeatherEmoji(weatherId){
 }
 
 function displayError(message){
-    
     const errorDisplay = document.createElement("p");
-    
     errorDisplay.textContent = message;
-    
     errorDisplay.classList.add("errorDisplay");
 
     card.textContent = "";
-
     cityHeading.textContent = "";
-    
     card.style.display = "flex";
-    
     card.appendChild(errorDisplay);
 }
     
