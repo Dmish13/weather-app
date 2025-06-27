@@ -20,7 +20,7 @@ body{
     font-weight: bold;
     border: 2px solid hsla(0,0%,20%,0.3);
     border-radius:10px;
-    margin: 10px;
+    margin: 0px;
     width: 300px;
 
 }
@@ -105,5 +105,32 @@ p{
     font-size: 2.5rem;
     font-weight: bold;
     color:black;
+}
+
+#suggestions{
+    background: linear-gradient(180deg, rgb(155, 229, 254), rgb(255, 255, 255));
+    list-style-type: none;
+    border-radius: 5px;
+    width: 302px;
+    margin-top: 0px;
+    padding-left: 0;
+    margin-left: 0;
+    margin-top: 0;
+    transform: translateX(20px);
+}
+
+#suggestions li{
+    border-bottom: 1px solid black;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: Arial;
+    font-style: italic;
+    
+}
+
+#suggestions li:hover{
+    background-color: rgb(49, 183, 255);
+    border-radius: 5px;
+    transition: 0.5s ease;
 }
 
