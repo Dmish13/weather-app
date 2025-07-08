@@ -1,6 +1,7 @@
 # weather-app
 
-![Screenshot 2025-06-26 165705](https://github.com/user-attachments/assets/c0590d92-208b-40a5-8ad3-376d3258643b)
+![Screenshot 2025-07-08 165822](https://github.com/user-attachments/assets/fb473516-c5ba-4ad9-aff6-b2ea2cb9f0b2)
+
 
 
 Base Code from Bro Code: https://youtu.be/lfmg-EJ8gm4?si=h0hM-UHa1lWqDmji&t=40881
