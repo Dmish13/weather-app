@@ -16,7 +16,6 @@ fetch("cities.json")
 .then(response=>response.json())
 .then(values => values.forEach(value => cities.push(value)));
 
-console.log(cities);
 
 cityInput.addEventListener("input", () =>{
     const query = cityInput.value.trim().toLowerCase();
@@ -92,7 +91,7 @@ function displayWeatherInfo(data){
 
     const { name: city, 
             main: {temp,humidity,temp_max,temp_min, feels_like}, 
-            weather:[{description, id}],
+            weather:[{description, icon}],
             sys: {sunrise, sunset},
             timezone} = data;
 
@@ -113,7 +112,7 @@ function displayWeatherInfo(data){
 
     const descDisplay = document.createElement("p");
 
-    const weatherEmoji = document.createElement("p");
+    const weatherEmoji = document.createElement("img");
 
     const riseSetdisplay = document.createElement("p");
 
@@ -143,7 +142,11 @@ function displayWeatherInfo(data){
 
     descDisplay.classList.add("descDisplay");
 
-    weatherEmoji.textContent = getWeatherEmoji(id);
+    
+
+    weatherEmoji.src = 'https://openweathermap.org/img/wn/' + icon + '@2x.png';
+    weatherEmoji.width = 100;
+    weatherEmoji.alt = description;
 
     weatherEmoji.classList.add("weatherEmoji");
 
@@ -206,30 +209,58 @@ function displayWeatherInfo(data){
     card.appendChild(riseSetdisplay);
     
     
+    document.body.style.background = getBackground(icon);
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.backgroundRepeat = "no-repeat";
+    document.body.style.backgroundPosition = "center";
+    document.body.style.transition = "background 1s ease-in-out";
 
 
 }
-
-function getWeatherEmoji(weatherId){
-    switch(true){
-        case(weatherId>=200 && weatherId <300):
-            return "⛈️";
-        case(weatherId>=300 && weatherId <400):
-            return "🌧️";
-        case(weatherId>=500 && weatherId <600):
-            return "🌦️";
-        case(weatherId>=600 && weatherId <700):
-            return "❄️";
-        case(weatherId>=700 && weatherId <800):
-            return "🌫️";
-        case(weatherId===800):
-            return "☀️";
-        case(weatherId>=801 && weatherId<810):
-            return "☁️";
+function getBackground(icon){
+    switch(icon){
+        case "01d":
+            return "linear-gradient(180deg, yellow, lightblue)";
+        case "01n":
+            return "linear-gradient(180deg, blue, white, black)";
+        case "02d":
+            return "linear-gradient(180deg, yellow, white)";
+        case "02n":
+            return "linear-gradient(180deg, blue, white)";
+        case "03d":
+            return "linear-gradient(180deg, gray, white)";
+        case "03n":
+            return "linear-gradient(180deg, gray, white)";
+        case "04d":
+            return "linear-gradient(180deg, white, darkgray)"; 
+        case "04n":
+            return "linear-gradient(180deg, white, darkgray)";
+        case "09d":
+            return "linear-gradient(180deg, white, black)";
+        case "09n":
+            return "linear-gradient(180deg, white, black)";
+        case "10d":
+            return "linear-gradient(180deg, white, gray)";
+        case  "10n":
+            return "linear-gradient(180deg, darkgray, gray)";
+        case  "11d":
+            return "linear-gradient(180deg, gray, white)";
+        case "11n":
+            return "linear-gradient(180deg, gray, darkgray)";
+        case "13d": 
+            return "linear-gradient(180deg, white, lightblue)";
+        case "13n":
+            return "linear-gradient(180deg, white, lightblue)";
+        case "50d":
+            return "linear-gradient(180deg, gray, darkgray)";
+        case "50n":
+            return "linear-gradient(180deg, gray, darkgray)";
         default:
-            return "❓";
+            return "";
     }
 }
+
 
 function displayError(message){
     const errorDisplay = document.createElement("p");
