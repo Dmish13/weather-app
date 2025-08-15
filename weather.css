@@ -134,3 +134,15 @@ p{
     transition: 0.5s ease;
 }
 
+.Heading{
+    background: linear-gradient(180deg, hsl(229, 100%, 75%), hsl(0, 0%, 100%));
+    padding: 0 50px;
+    border-radius: 25px;
+    align-items: center;
+    margin-bottom: 20px;
+    box-shadow: 2px 2px 5px hsla(0,0%,0%,0.5);
+}
+
+.City{
+    margin-bottom: 0px;
+}

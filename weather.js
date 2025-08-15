@@ -54,6 +54,8 @@ weatherForm.addEventListener("submit", async event => {
         try{
             const weatherData = await getWeatherData(city);
 
+            suggestions.innerHTML = '';
+
             console.log(weatherData);
 
             displayWeatherInfo(weatherData);
@@ -214,48 +216,48 @@ function displayWeatherInfo(data){
     document.body.style.backgroundAttachment = "fixed";
     document.body.style.backgroundRepeat = "no-repeat";
     document.body.style.backgroundPosition = "center";
-    document.body.style.transition = "background 1s ease-in-out";
+    document.body.style.transition = "background 2s ease-in-out";
 
 
 }
 function getBackground(icon){
     switch(icon){
         case "01d":
-            return "linear-gradient(180deg, yellow, lightblue)";
+            return "url('clearsky.jpg')";
         case "01n":
-            return "linear-gradient(180deg, blue, white, black)";
+            return "url('clearskynight.jpeg')";
         case "02d":
-            return "linear-gradient(180deg, yellow, white)";
+            return "url('fewclouds.jpg')";
         case "02n":
-            return "linear-gradient(180deg, blue, white)";
+            return "url('fewcloudsnight.png')";
         case "03d":
-            return "linear-gradient(180deg, gray, white)";
+            return "url('scatteredclouds.jpeg')";
         case "03n":
-            return "linear-gradient(180deg, gray, white)";
+            return "url('scatteredcloudsnight.jpeg')";
         case "04d":
-            return "linear-gradient(180deg, white, darkgray)"; 
+            return "url('brokenclouds.jpg')"; 
         case "04n":
-            return "linear-gradient(180deg, white, darkgray)";
+            return "url('brokencloudsnight.jpg')";
         case "09d":
-            return "linear-gradient(180deg, white, black)";
+            return "url('lightrain.png')";
         case "09n":
-            return "linear-gradient(180deg, white, black)";
+            return "url('nightrain.png')";
         case "10d":
-            return "linear-gradient(180deg, white, gray)";
+            return "url('rain.png')";
         case  "10n":
-            return "linear-gradient(180deg, darkgray, gray)";
+            return "url('nightrain.png')";
         case  "11d":
-            return "linear-gradient(180deg, gray, white)";
+            return "url('thunderstorm.png')";
         case "11n":
-            return "linear-gradient(180deg, gray, darkgray)";
+            return "url('nightrain.png')";
         case "13d": 
-            return "linear-gradient(180deg, white, lightblue)";
+            return "url('snow.png')";
         case "13n":
-            return "linear-gradient(180deg, white, lightblue)";
+            return "url(nightsnow.png)";
         case "50d":
-            return "linear-gradient(180deg, gray, darkgray)";
+            return "url('mist.png')";
         case "50n":
-            return "linear-gradient(180deg, gray, darkgray)";
+            return "url('mist.png')";
         default:
             return "";
     }
