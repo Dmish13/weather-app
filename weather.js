@@ -24,13 +24,26 @@ cityInput.addEventListener("input", () =>{
 
     if(query.length<1) return;
 
-    const matches = cities.filter(city => city.name.toLowerCase().startsWith(query))
-    .slice(0,5);
+    const matches = cities.filter(city => city.name.toLowerCase().includes(query))
+    .slice(0,10);
 
     matches.forEach(city=> {
         const li = document.createElement('li');
+        // Find the match position
+        const cityName = city.name;
+        const queryIndex = cityName.toLowerCase().indexOf(query);
 
-        li.textContent = `${city.name}, ${city.subcountry}, ${city.country}`;
+        if (queryIndex !== -1) {
+            // Split and wrap the matched part in <strong>
+            const before = cityName.slice(0, queryIndex);
+            const match = cityName.slice(queryIndex, queryIndex + query.length);
+            const after = cityName.slice(queryIndex + query.length);
+
+            li.innerHTML = `${before}<strong>${match}</strong>${after}, ${city.subcountry}, ${city.country}`;
+        } 
+        else {
+            li.textContent = `${city.name}, ${city.subcountry}, ${city.country}`;
+        }
 
         li.addEventListener('click', () => {
             cityInput.value = `${city.name}, ${city.country}`;
@@ -49,12 +62,13 @@ weatherForm.addEventListener("submit", async event => {
 
     const city = cityInput.value;
 
+    suggestions.innerHTML = '';
+
     if(city){
 
         try{
             const weatherData = await getWeatherData(city);
 
-            suggestions.innerHTML = '';
 
             console.log(weatherData);
 
@@ -223,41 +237,41 @@ function displayWeatherInfo(data){
 function getBackground(icon){
     switch(icon){
         case "01d":
-            return "url('clearsky.jpg')";
+            return "url('images/clearsky.jpg')";
         case "01n":
-            return "url('clearskynight.jpeg')";
+            return "url('images/clearskynight.jpeg')";
         case "02d":
-            return "url('fewclouds.jpg')";
+            return "url('images/fewclouds.jpg')";
         case "02n":
-            return "url('fewcloudsnight.png')";
+            return "url('images/fewcloudsnight.png')";
         case "03d":
-            return "url('scatteredclouds.jpeg')";
+            return "url('images/scatteredclouds.png')";
         case "03n":
-            return "url('scatteredcloudsnight.jpeg')";
+            return "url('images/scatteredcloudsnight.png')";
         case "04d":
-            return "url('brokenclouds.jpg')"; 
+            return "url('images/brokenclouds.png')"; 
         case "04n":
-            return "url('brokencloudsnight.jpg')";
+            return "url('images/brokencloudsnight.png')";
         case "09d":
-            return "url('lightrain.png')";
+            return "url('images/lightrain.png')";
         case "09n":
-            return "url('nightrain.png')";
+            return "url('images/nightrain.png')";
         case "10d":
-            return "url('rain.png')";
+            return "url('images/rain.png')";
         case  "10n":
-            return "url('nightrain.png')";
+            return "url('images/nightrain.png')";
         case  "11d":
-            return "url('thunderstorm.png')";
+            return "url('images/thunderstorm.png')";
         case "11n":
-            return "url('nightrain.png')";
+            return "url('images/thunderstormnight.png')";
         case "13d": 
-            return "url('snow.png')";
+            return "url('images/snow.png')";
         case "13n":
-            return "url(nightsnow.png)";
+            return "url('images/nightsnow.png')";
         case "50d":
-            return "url('mist.png')";
+            return "url('images/mist.png')";
         case "50n":
-            return "url('mist.png')";
+            return "url('images/mist.png')";
         default:
             return "";
     }
@@ -267,6 +281,8 @@ function getBackground(icon){
 function displayError(message){
     const errorDisplay = document.createElement("p");
     errorDisplay.textContent = message;
+    errorDisplay.style.color = "red";
+    errorDisplay.style.textAlign = "center";
     errorDisplay.classList.add("errorDisplay");
 
     card.textContent = "";
