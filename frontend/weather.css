@@ -152,7 +152,7 @@ p{
 @media(max-width: 600px){
     .errorDisplay{
         font-size: 2rem;
-        width: 300px;
+        width: 350px;
     }
     .Heading{
         padding: 0 5px;
@@ -164,8 +164,8 @@ p{
 
 @media(max-width: 400px){
     .errorDisplay{
-        font-size: 1.2rem;
-        width: 200px;
+        font-size: 1.5rem;
+        width: 250px;
     }
     .Heading{
         padding: 0 5px;
