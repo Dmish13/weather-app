@@ -283,7 +283,6 @@ function displayError(message){
     errorDisplay.textContent = message;
     errorDisplay.style.color = "red";
     errorDisplay.style.textAlign = "center";
-    errorDisplay.style.width  = "450px";
 
     errorDisplay.classList.add("errorDisplay");
 
