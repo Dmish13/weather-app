@@ -153,11 +153,17 @@ p{
         font-size: 2rem;
         width: 300px;
     }
+    .Heading{
+        padding: 0 30px;
+    }
 }
 
 @media(max-width: 400px){
     .errorDisplay{
         font-size: 1.2rem;
         width: 200px;
+    }
+    .Heading{
+        padding: 0 30px;
     }
 }
