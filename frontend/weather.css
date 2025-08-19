@@ -146,6 +146,7 @@ p{
 
 .City{
     margin-bottom: 0px;
+    text-align: center;
 }
 
 @media(max-width: 600px){
@@ -165,5 +166,6 @@ p{
     }
     .Heading{
         padding: 0 30px;
+        max-width: 300px;
     }
 }
