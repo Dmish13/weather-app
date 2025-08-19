@@ -89,7 +89,7 @@ weatherForm.addEventListener("submit", async event => {
 async function getWeatherData(city){
 
      // Fetch from your backend, not OpenWeatherMap directly
-    const apiUrl = `http://localhost:9000/weather?city=${encodeURIComponent(city)}`;
+    const apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather?city=${encodeURIComponent(city)}`;
 
     const response = await fetch(apiUrl);
 
