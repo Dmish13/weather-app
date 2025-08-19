@@ -78,7 +78,7 @@ weatherForm.addEventListener("submit", async event => {
         catch(error){
             console.error(error);
 
-            displayError(error);
+            displayError("Sorry, you either entered an invalid city name, or we were unable to process your request. Please try again. ");
         }
     }
     else{
@@ -283,6 +283,8 @@ function displayError(message){
     errorDisplay.textContent = message;
     errorDisplay.style.color = "red";
     errorDisplay.style.textAlign = "center";
+    errorDisplay.style.width  = "450px";
+
     errorDisplay.classList.add("errorDisplay");
 
     card.textContent = "";
