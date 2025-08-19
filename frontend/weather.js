@@ -63,6 +63,7 @@ weatherForm.addEventListener("submit", async event => {
     const city = cityInput.value;
 
     suggestions.innerHTML = '';
+    
 
     if(city){
 
@@ -84,6 +85,7 @@ weatherForm.addEventListener("submit", async event => {
     else{
         displayError("Please enter a city");
     }
+    cityInput.value = '';
 });
 
 async function getWeatherData(city){
