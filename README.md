@@ -1,8 +1,9 @@
 # weather-app
 
 
+<img width="1912" height="827" alt="Screenshot 2025-08-19 181200" src="https://github.com/user-attachments/assets/179190db-83f6-4988-8eb3-d12d5f3222ee" />
 
-<img width="1918" height="826" alt="Screenshot 2025-08-18 162344" src="https://github.com/user-attachments/assets/8cd67952-3632-4bc9-b6a9-63f586e2a9f4" />
+
 
 
 Base Code from Bro Code: https://youtu.be/lfmg-EJ8gm4?si=h0hM-UHa1lWqDmji&t=40881
