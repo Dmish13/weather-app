@@ -11,7 +11,7 @@ body{
 }
 
 .weatherForm{
-    margin: 50px;
+    margin: 20px;
 }
 
 .cityInput{
@@ -169,5 +169,8 @@ p{
     }
     .Heading{
         padding: 0 5px;
+    }
+    .weatherForm{
+        margin: 40px;
     }
 }
