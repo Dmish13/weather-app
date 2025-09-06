@@ -45,10 +45,37 @@ cityInput.addEventListener("input", () =>{
             li.textContent = `${city.name}, ${city.subcountry}, ${city.country}`;
         }
 
-        li.addEventListener('click', () => {
+        li.addEventListener('click', async () => {
+
             cityInput.value = `${city.name}, ${city.country}`;
 
+            cityy = cityInput.value;
+
             suggestions.innerHTML = '';
+            
+
+            if(cityy){
+
+                try{
+                    const weatherData = await getWeatherData(cityy);
+
+
+                    console.log(weatherData);
+
+                    displayWeatherInfo(weatherData);
+                }
+
+                catch(error){
+                    console.error(error);
+
+                    displayError("Sorry, you either entered an invalid city name, or we were unable to process your request. Please try again. ");
+                }
+            }
+            else{
+                displayError("Please enter a city");
+            }
+            cityInput.value = '';
+
         });
 
         suggestions.appendChild(li);
