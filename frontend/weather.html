@@ -15,12 +15,51 @@
         <ul id="suggestions"></ul>
     </form>
 
-    <div class = "Heading">
+    <!-- Loading Spinner -->
+    <div class="loading-container" style="display:none">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Fetching weather data...</p>
+    </div>
+
+    <div class = "Heading" style="display:none">
     <h1 class="City"></h1>
+    <button id="favButton" class="favButton" style="display:none">Add to favorites</button>
     </div>
 
     <div class="card" style="display: none">
 
+    </div>
+
+    <!-- Share and Add Location buttons -->
+    <div class="action-buttons" style="display:none">
+        <button id="shareButton" class="actionBtn">📤 Share Weather</button>
+        <button id="addLocationBtn" class="actionBtn">📍 Save Location</button>
+        <button id="subscribeNewsletterBtn" class="actionBtn">📧 Subscribe</button>
+    </div>
+
+    <!-- Saved Locations Section -->
+    <div class="saved-locations-container" style="display:none">
+        <div class="saved-locations-header">
+            <h2>📍 My Locations</h2>
+        </div>
+        <div id="savedLocationsList" class="saved-locations-grid"></div>
+    </div>
+
+    <!-- Newsletter Subscription Modal -->
+    <div id="newsletterModal" class="modal">
+        <div class="modal-content">
+            <span class="close-newsletter">&times;</span>
+            <h2>📧 Subscribe to Weather Updates</h2>
+            <p>Get daily weather updates for <strong><span id="subCityName"></span></strong> delivered to your inbox!</p>
+            <form id="newsletterForm">
+                <div class="form-group">
+                    <label for="subEmail">Email address:</label>
+                    <input type="email" id="subEmail" placeholder="your@email.com" required>
+                </div>
+                <button type="submit" class="submitBtn">Subscribe</button>
+            </form>
+            <p class="note">You can unsubscribe anytime. We respect your privacy.</p>
+        </div>
     </div>
 
     <script src="weather.js"></script>

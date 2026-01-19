@@ -1,2 +1,12 @@
 .env
 node_modules/
+
+# Test files
+backend/test-daily-emails.js
+backend/test-single-email.js
+backend/check-subscribers.js
+
+BREVO_INTEGRATION_GUIDE.md
+CRON_SETUP.md
+FREE_EMAIL_SERVICES.md
+PRODUCTION_DEPLOYMENT.md
