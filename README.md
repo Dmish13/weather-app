@@ -1,6 +1,7 @@
 # Weather App
 
-<img width="1912" height="827" alt="Screenshot 2025-08-19 181200" src="https://github.com/user-attachments/assets/179190db-83f6-4988-8eb3-d12d5f3222ee" />
+<img width="898" height="830" alt="image" src="https://github.com/user-attachments/assets/2d8f53c2-63ea-4d09-b610-9e46a1ac6d70" />
+
 
 ## Features
 
