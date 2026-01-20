@@ -1,10 +1,9 @@
 const weatherForm = document.querySelector(".weatherForm");
-
-const cityInput =document.querySelector(".cityInput");
-
-const suggestions = document.getElementById("suggestions")
-
-const card =document.querySelector(".card");
+const cityInput = document.querySelector(".cityInput");
+const stateSelect = document.querySelector(".stateSelect");
+const countrySelect = document.querySelector(".countrySelect");
+const suggestions = document.getElementById("suggestions");
+const card = document.querySelector(".card");
 
 
 
@@ -24,10 +23,27 @@ let currentCity = null;
 let savedLocations = JSON.parse(localStorage.getItem('savedWeatherLocations') || '[]');
 
 let cities = [];
+let countryCodes = {};
+let stateCodes = {};
 
-fetch("cities.json")
-.then(response=>response.json())
-.then(values => values.forEach(value => cities.push(value)));
+// Load all data
+Promise.all([
+    fetch("cities.json").then(response => response.json()),
+    fetch("countrycodes.json").then(response => response.json()),
+    fetch("statecodes.json").then(response => response.json())
+]).then(([citiesData, countryData, stateData]) => {
+    cities = citiesData;
+    countryCodes = countryData;
+    stateCodes = stateData;
+    
+    // Populate country dropdown
+    populateCountryDropdown();
+    
+    // Set US as default
+    countrySelect.value = 'US';
+    stateSelect.style.display = 'block';
+    populateStateDropdown();
+});
 
 // Cookie helper functions
 function setCookie(name, value, days) {
@@ -54,6 +70,39 @@ function getCookie(name) {
 function deleteCookie(name) {
     setCookie(name, "", -1);
 }
+
+// Populate country dropdown
+function populateCountryDropdown() {
+    const sortedCountries = Object.entries(countryCodes).sort((a, b) => a[1].localeCompare(b[1]));
+    sortedCountries.forEach(([code, name]) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        countrySelect.appendChild(option);
+    });
+}
+
+// Populate state dropdown (US only)
+function populateStateDropdown() {
+    stateSelect.innerHTML = '<option value="">State (Optional)</option>';
+    Object.entries(stateCodes).forEach(([code, name]) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        stateSelect.appendChild(option);
+    });
+}
+
+// Handle country selection change
+countrySelect.addEventListener('change', () => {
+    if (countrySelect.value === 'US') {
+        stateSelect.style.display = 'block';
+        populateStateDropdown();
+    } else {
+        stateSelect.style.display = 'none';
+        stateSelect.value = '';
+    }
+});
 
 
 cityInput.addEventListener("input", () =>{
@@ -90,46 +139,40 @@ cityInput.addEventListener("input", () =>{
         }
 
         li.addEventListener('click', async () => {
-
-            cityInput.value = `${city.name}, ${city.country}`;
-
-            cityy = cityInput.value;
+            // Set city name
+            cityInput.value = city.name;
+            
+            // Find and set country code
+            const countryCode = Object.keys(countryCodes).find(
+                code => countryCodes[code] === city.country
+            );
+            if (countryCode) {
+                countrySelect.value = countryCode;
+                
+                // If US, show state dropdown and try to set state
+                if (countryCode === 'US' && city.subcountry) {
+                    stateSelect.style.display = 'block';
+                    populateStateDropdown();
+                    
+                    // Try to find state code
+                    const stateCode = Object.keys(stateCodes).find(
+                        code => stateCodes[code] === city.subcountry
+                    );
+                    if (stateCode) {
+                        stateSelect.value = stateCode;
+                    }
+                } else {
+                    stateSelect.style.display = 'none';
+                    stateSelect.value = '';
+                }
+            }
 
             suggestions.innerHTML = '';
             suggestions.classList.remove('show');
             
-
-            if(cityy){
-                // Show loading spinner
-                if(loadingContainer) loadingContainer.style.display = 'flex';
-                if(card) card.style.display = 'none';
-                if(headingSection) headingSection.style.display = 'none';
-                if(actionButtons) actionButtons.style.display = 'none';
-
-                try{
-                    const weatherData = await getWeatherData(cityy);
-
-
-                    console.log(weatherData);
-
-                    displayWeatherInfo(weatherData);
-                    // Hide loading spinner
-                    if(loadingContainer) loadingContainer.style.display = 'none';
-                }
-
-                catch(error){
-                    console.error(error);
-                    // Hide loading spinner on error
-                    if(loadingContainer) loadingContainer.style.display = 'none';
-
-                    displayError("Sorry, you either entered an invalid city name, or we were unable to process your request. Please try again. ");
-                }
-            }
-            else{
-                displayError("Please enter a city");
-            }
-            cityInput.value = '';
-
+            // Trigger form submission
+            const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
+            weatherForm.dispatchEvent(submitEvent);
         });
 
         suggestions.appendChild(li);
@@ -138,65 +181,143 @@ cityInput.addEventListener("input", () =>{
 
 
 weatherForm.addEventListener("submit", async event => {
-
     event.preventDefault();
 
-    const city = cityInput.value;
+    const city = cityInput.value.trim();
+    const country = countrySelect.value;
+    const state = stateSelect.value;
 
     suggestions.innerHTML = '';
     suggestions.classList.remove('show');
     
-
-    if(city){
-        // Show loading spinner
-        if(loadingContainer) loadingContainer.style.display = 'flex';
-        if(card) card.style.display = 'none';
-        if(headingSection) headingSection.style.display = 'none';
-        if(actionButtons) actionButtons.style.display = 'none';
-
-        try{
-            const weatherData = await getWeatherData(city);
-
-
-            console.log(weatherData);
-
-            displayWeatherInfo(weatherData);
-            // Hide loading spinner
-            if(loadingContainer) loadingContainer.style.display = 'none';
-        }
-
-        catch(error){
-            console.error(error);
-            // Hide loading spinner on error
-            if(loadingContainer) loadingContainer.style.display = 'none';
-
-            displayError("Sorry, you either entered an invalid city name, or we were unable to process your request. Please try again. ");
-        }
-    }
-    else{
+    if(!city) {
         displayError("Please enter a city");
+        return;
     }
-    cityInput.value = '';
+    
+    if(!country) {
+        displayError("Please select a country");
+        return;
+    }
+
+    // Show loading spinner
+    if(loadingContainer) loadingContainer.style.display = 'flex';
+    if(card) card.style.display = 'none';
+    if(headingSection) headingSection.style.display = 'none';
+    if(actionButtons) actionButtons.style.display = 'none';
+
+    try {
+        const weatherData = await getWeatherData(city, state, country);
+        console.log(weatherData);
+        
+        // Fetch forecast data
+        const forecastData = await getForecast(city, state, country);
+        
+        // Parse forecast for daily data
+        const dailyData = parseDailyForecast(forecastData);
+        
+        displayWeatherInfo(weatherData, dailyData);
+        displayHourlyForecast(forecastData);
+        displayDailyForecast(dailyData);
+        
+        // Hide loading spinner
+        if(loadingContainer) loadingContainer.style.display = 'none';
+    } catch(error) {
+        console.error(error);
+        // Hide loading spinner on error
+        if(loadingContainer) loadingContainer.style.display = 'none';
+        displayError("Sorry, you either entered an invalid city name, or we were unable to process your request. Please try again.");
+    }
 });
 
-async function getWeatherData(city){
-
-     // Fetch from your backend, not OpenWeatherMap directly
-    const apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather?city=${encodeURIComponent(city)}`;
+async function getWeatherData(city, state, country) {
+    // Build query parameters
+    let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
+    
+    if (state && country === 'US') {
+        apiUrl += `&state=${encodeURIComponent(state)}`;
+    }
 
     const response = await fetch(apiUrl);
-
     console.log(response);
 
-    if(!response.ok){
+    if(!response.ok) {
         throw new Error("Could not fetch weather data");
     }
 
     return await response.json();
-
 }
 
-function displayWeatherInfo(data){
+async function getForecast(city, state, country) {
+    let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather/forecast?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
+    
+    if (state && country === 'US') {
+        apiUrl += `&state=${encodeURIComponent(state)}`;
+    }
+
+    const response = await fetch(apiUrl);
+    if(!response.ok) {
+        throw new Error("Could not fetch forecast data");
+    }
+
+    return await response.json();
+}
+
+function parseDailyForecast(forecastData) {
+    console.log(forecastData);
+    if (!forecastData || !forecastData.list) return null;
+    
+    const dailyMap = new Map();
+    
+    // Group forecast data by day
+    forecastData.list.forEach(item => {
+        const date = new Date(item.dt * 1000);
+        const dateKey = date.toDateString();
+        
+        // Use sys.pod to determine day or night ("d" = day, "n" = night)
+        const isDaytime = item.sys && item.sys.pod === 'd';
+        
+        if (!dailyMap.has(dateKey)) {
+            dailyMap.set(dateKey, {
+                dt: Math.floor(new Date(date).setHours(12, 0, 0, 0) / 1000),
+                temp: { min: item.main.temp, max: item.main.temp },
+                dayWeather: isDaytime ? item.weather[0] : null,
+                nightWeather: !isDaytime ? item.weather[0] : null,
+                dayIcon: isDaytime ? item.weather[0].icon : null,
+                nightIcon: !isDaytime ? item.weather[0].icon : null,
+                temps: [item.main.temp]
+            });
+        } else {
+            const day = dailyMap.get(dateKey);
+            day.temp.min = Math.min(day.temp.min, item.main.temp);
+            day.temp.max = Math.max(day.temp.max, item.main.temp);
+            day.temps.push(item.main.temp);
+            
+            // Update day/night weather
+            if (isDaytime && !day.dayWeather) {
+                day.dayWeather = item.weather[0];
+            }
+            if (!isDaytime && !day.nightWeather) {
+                day.nightWeather = item.weather[0];
+            }
+            
+            // Store both day and night icons
+            if (isDaytime && !day.dayIcon) {
+                day.dayIcon = item.weather[0].icon;
+            }
+            if (!isDaytime && !day.nightIcon) {
+                day.nightIcon = item.weather[0].icon;
+            }
+        }
+    });
+    
+    // Convert to array and limit to 6 days
+    const dailyList = Array.from(dailyMap.values()).slice(0, 6);
+    
+    return { list: dailyList };
+}
+
+function displayWeatherInfo(data, dailyData){
 
     const { name: city, 
             main: {temp,humidity,temp_max,temp_min, feels_like}, 
@@ -266,7 +387,16 @@ function displayWeatherInfo(data){
 
     tempDisplay.classList.add("tempDisplay");
 
-    lowHighDisplay.textContent = `↑${((temp_max-273.15)*9/5 +32).toFixed(0)}°    /   ↓${((temp_min-273.15)*9/5 +32).toFixed(0)}°`;
+    // Use today's high/low from daily forecast if available
+    let todayHigh = temp_max;
+    let todayLow = temp_min;
+    
+    if(dailyData && dailyData.list && dailyData.list[0]) {
+        todayHigh = dailyData.list[0].temp.max;
+        todayLow = dailyData.list[0].temp.min;
+    }
+
+    lowHighDisplay.textContent = `↑${((todayHigh-273.15)*9/5 +32).toFixed(0)}°    /   ↓${((todayLow-273.15)*9/5 +32).toFixed(0)}°`;
 
     lowHighDisplay.classList.add("lowDisplay");
     
@@ -403,6 +533,115 @@ function getBackground(icon){
     }
 }
 
+function displayHourlyForecast(data) {
+    const hourlyContainer = document.querySelector('.hourly-forecast-container');
+    const hourlyForecast = document.getElementById('hourlyForecast');
+    
+    if(!data || !data.list) {
+        hourlyContainer.style.display = 'none';
+        return;
+    }
+    
+    hourlyForecast.innerHTML = '';
+    hourlyContainer.style.display = 'block';
+    
+    // Display next 8 intervals (24 hours with 3-hour intervals)
+    data.list.slice(0, 9).forEach(hour => {
+        const hourItem = document.createElement('div');
+        hourItem.classList.add('hourly-item');
+        
+        // Format time
+        const date = new Date(hour.dt * 1000);
+        const hours = date.getHours();
+        const meridiem = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const timeStr = `${displayHours} ${meridiem}`;
+        
+        // Temperature in Fahrenheit
+        const temp = ((hour.main.temp - 273.15) * 9/5 + 32).toFixed(0);
+        
+        hourItem.innerHTML = `
+            <div class="hourly-time">${timeStr}</div>
+            <img src="https://openweathermap.org/img/wn/${hour.weather[0].icon}@2x.png" 
+                 alt="${hour.weather[0].description}" 
+                 class="hourly-icon">
+            <div class="hourly-temp">${temp}°F</div>
+        `;
+        
+        hourlyForecast.appendChild(hourItem);
+    });
+}
+
+function displayDailyForecast(data) {
+    const dailyContainer = document.querySelector('.daily-forecast-container');
+    const dailyForecast = document.getElementById('dailyForecast');
+    
+    if(!data || !data.list) {
+        dailyContainer.style.display = 'none';
+        return;
+    }
+    
+    dailyForecast.innerHTML = '';
+    dailyContainer.style.display = 'block';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Display 6 days
+    data.list.forEach((day, index) => {
+        const dayRow = document.createElement('div');
+        dayRow.classList.add('daily-row');
+        
+        const date = new Date(day.dt * 1000);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        // Check if it's today
+        const checkDate = new Date(date);
+        checkDate.setHours(0, 0, 0, 0);
+        const isToday = checkDate.getTime() === today.getTime();
+        const displayDay = isToday ? 'Today' : dayName;
+        
+        // Temperatures in Fahrenheit
+        const high = ((day.temp.max - 273.15) * 9/5 + 32).toFixed(0);
+        const low = ((day.temp.min - 273.15) * 9/5 + 32).toFixed(0);
+        
+        // Build description with day and night weather
+        let description = '';
+        if (day.dayWeather && day.nightWeather) {
+            description = `Day: ${day.dayWeather.description} • Night: ${day.nightWeather.description}`;
+        } else if (day.dayWeather) {
+            description = `Day: ${day.dayWeather.description}`;
+        } else if (day.nightWeather) {
+            description = `Night: ${day.nightWeather.description}`;
+        }
+        
+        // Build icons HTML - show both day and night
+        let iconsHtml = '<div class="daily-icons">';
+        if (day.dayIcon) {
+            iconsHtml += `<img src="https://openweathermap.org/img/wn/${day.dayIcon}@2x.png" alt="Day weather" class="daily-icon">`;
+        }
+        if (day.nightIcon) {
+            iconsHtml += `<img src="https://openweathermap.org/img/wn/${day.nightIcon}@2x.png" alt="Night weather" class="daily-icon">`;
+        }
+        iconsHtml += '</div>';
+        
+        dayRow.innerHTML = `
+            <div>
+                <div class="daily-day">${displayDay}</div>
+                <div class="daily-date">${dateStr}</div>
+            </div>
+            ${iconsHtml}
+            <div class="daily-description">${description}</div>
+            <div class="daily-temps">
+                <span class="daily-high">${high}°</span>
+                <span class="daily-low">${low}°</span>
+            </div>
+        `;
+        
+        dailyForecast.appendChild(dayRow);
+    });
+}
 
 function displayError(message){
     const errorDisplay = document.createElement("p");
@@ -419,6 +658,12 @@ function displayError(message){
     if(favButton) favButton.style.display = 'none';
     if(actionButtons) actionButtons.style.display = 'none';
     if(headingSection) headingSection.style.display = 'none';
+    
+    // Hide forecast sections on error
+    const hourlyContainer = document.querySelector('.hourly-forecast-container');
+    const dailyContainer = document.querySelector('.daily-forecast-container');
+    if(hourlyContainer) hourlyContainer.style.display = 'none';
+    if(dailyContainer) dailyContainer.style.display = 'none';
 }
 
 // Share button functionality

@@ -10,7 +10,15 @@
 <body>
     
     <form class="weatherForm">
-        <input type="text" class="cityInput" placeholder="Enter City" autocomplete="off">
+        <div class="form-inputs">
+            <input type="text" class="cityInput" placeholder="Enter City" autocomplete="off" required>
+            <select class="stateSelect" style="display:none">
+                <option value="">State (Optional)</option>
+            </select>
+            <select class="countrySelect" required>
+                <option value="">Select Country</option>
+            </select>
+        </div>
         <button type="submit">Get Weather</button>
         <ul id="suggestions"></ul>
     </form>
@@ -35,6 +43,18 @@
         <button id="shareButton" class="actionBtn">📤 Share Weather</button>
         <button id="addLocationBtn" class="actionBtn">📍 Save Location</button>
         <button id="subscribeNewsletterBtn" class="actionBtn">📧 Subscribe</button>
+    </div>
+
+    <!-- Hourly Forecast Section -->
+    <div class="hourly-forecast-container" style="display:none">
+        <h2>📅 24-Hour Forecast</h2>
+        <div id="hourlyForecast" class="hourly-scroll"></div>
+    </div>
+
+    <!-- Daily Forecast Section -->
+    <div class="daily-forecast-container" style="display:none">
+        <h2>📆 6-Day Forecast</h2>
+        <div id="dailyForecast" class="daily-table"></div>
     </div>
 
     <!-- Saved Locations Section -->
