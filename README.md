@@ -43,7 +43,8 @@
 - OpenWeather API integration:
   - Geocoding API (city/state/country → coordinates)
   - Current Weather API
-  - 5-day/3-hour Forecast API
+  - 16-day Forecast API
+  - Hourly Forecast API for 4 days
 - Brevo API for newsletter functionality
 - Node-cron for scheduled tasks
 
