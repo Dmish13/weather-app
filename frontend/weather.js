@@ -5,6 +5,47 @@ const countrySelect = document.querySelector(".countrySelect");
 const suggestions = document.getElementById("suggestions");
 const card = document.querySelector(".card");
 
+// Toast Notification System
+let toastContainer = null;
+
+function showToast(message, type = 'info') {
+    // Create container if it doesn't exist
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    // Icon based on type
+    const icons = {
+        success: '✓',
+        error: '✕',
+        info: 'ℹ',
+        warning: '⚠'
+    };
+    
+    toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || icons.info}</span>
+        <span class="toast-message">${message}</span>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // Remove toast after animation
+    setTimeout(() => {
+        toast.remove();
+        // Remove container if empty
+        if (toastContainer.children.length === 0) {
+            toastContainer.remove();
+            toastContainer = null;
+        }
+    }, 3000);
+}
+
 
 
 const cityHeading = document.querySelector(".City");
@@ -210,11 +251,13 @@ weatherForm.addEventListener("submit", async event => {
         const weatherData = await getWeatherData(city, state, country);
         console.log(weatherData);
         
-        // Fetch forecast data
+        // Fetch hourly forecast data (24 hours from Pro API)
         const forecastData = await getForecast(city, state, country);
+        console.log(forecastData);
         
-        // Parse forecast for daily data
-        const dailyData = parseDailyForecast(forecastData);
+        // Fetch daily forecast data (7 days from Pro API)
+        const dailyData = await getDailyForecast(city, state, country);
+        console.log(dailyData);
         
         displayWeatherInfo(weatherData, dailyData);
         displayHourlyForecast(forecastData);
@@ -258,6 +301,21 @@ async function getForecast(city, state, country) {
     const response = await fetch(apiUrl);
     if(!response.ok) {
         throw new Error("Could not fetch forecast data");
+    }
+
+    return await response.json();
+}
+
+async function getDailyForecast(city, state, country) {
+    let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather/forecast/daily?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
+    
+    if (state && country === 'US') {
+        apiUrl += `&state=${encodeURIComponent(state)}`;
+    }
+
+    const response = await fetch(apiUrl);
+    if(!response.ok) {
+        throw new Error("Could not fetch daily forecast data");
     }
 
     return await response.json();
@@ -311,8 +369,24 @@ function parseDailyForecast(forecastData) {
         }
     });
     
-    // Convert to array and limit to 6 days
-    const dailyList = Array.from(dailyMap.values()).slice(0, 6);
+    // Convert to array and fill missing day/night icons
+    const dailyList = Array.from(dailyMap.values()).map(day => {
+        // If missing day icon but have night icon, convert night to day
+        if (!day.dayIcon && day.nightIcon) {
+            day.dayIcon = day.nightIcon.replace('n', 'd');
+            if (!day.dayWeather && day.nightWeather) {
+                day.dayWeather = day.nightWeather;
+            }
+        }
+        // If missing night icon but have day icon, convert day to night
+        if (!day.nightIcon && day.dayIcon) {
+            day.nightIcon = day.dayIcon.replace('d', 'n');
+            if (!day.nightWeather && day.dayWeather) {
+                day.nightWeather = day.dayWeather;
+            }
+        }
+        return day;
+    }).slice(0, 6);
     
     return { list: dailyList };
 }
@@ -546,7 +620,7 @@ function displayHourlyForecast(data) {
     hourlyContainer.style.display = 'block';
     
     // Display next 8 intervals (24 hours with 3-hour intervals)
-    data.list.slice(0, 9).forEach(hour => {
+    data.list.slice(0, 25).forEach(hour => {
         const hourItem = document.createElement('div');
         hourItem.classList.add('hourly-item');
         
@@ -587,7 +661,7 @@ function displayDailyForecast(data) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Display 6 days
+    // Display 7 days from Pro API
     data.list.forEach((day, index) => {
         const dayRow = document.createElement('div');
         dayRow.classList.add('daily-row');
@@ -602,29 +676,22 @@ function displayDailyForecast(data) {
         const isToday = checkDate.getTime() === today.getTime();
         const displayDay = isToday ? 'Today' : dayName;
         
-        // Temperatures in Fahrenheit
+        // Temperatures in Fahrenheit - Pro API daily forecast provides temp object with day, min, max, night, etc.
         const high = ((day.temp.max - 273.15) * 9/5 + 32).toFixed(0);
         const low = ((day.temp.min - 273.15) * 9/5 + 32).toFixed(0);
         
-        // Build description with day and night weather
-        let description = '';
-        if (day.dayWeather && day.nightWeather) {
-            description = `Day: ${day.dayWeather.description} • Night: ${day.nightWeather.description}`;
-        } else if (day.dayWeather) {
-            description = `Day: ${day.dayWeather.description}`;
-        } else if (day.nightWeather) {
-            description = `Night: ${day.nightWeather.description}`;
-        }
+        // Weather description - Pro API provides weather array
+        const description = day.weather && day.weather[0] ? day.weather[0].description : '';
+        const mainIcon = day.weather && day.weather[0] ? day.weather[0].icon : '01d';
+        
+        // Create day and night versions of the icon
         
         // Build icons HTML - show both day and night
-        let iconsHtml = '<div class="daily-icons">';
-        if (day.dayIcon) {
-            iconsHtml += `<img src="https://openweathermap.org/img/wn/${day.dayIcon}@2x.png" alt="Day weather" class="daily-icon">`;
-        }
-        if (day.nightIcon) {
-            iconsHtml += `<img src="https://openweathermap.org/img/wn/${day.nightIcon}@2x.png" alt="Night weather" class="daily-icon">`;
-        }
-        iconsHtml += '</div>';
+        const iconsHtml = `
+            <div class="daily-icons">
+                <img src="https://openweathermap.org/img/wn/${mainIcon}@2x.png" alt="Day weather" class="daily-icon">
+            </div>
+        `;
         
         dayRow.innerHTML = `
             <div>
@@ -676,12 +743,38 @@ if(shareButton){
             // Try to use Clipboard API
             if(navigator.clipboard){
                 navigator.clipboard.writeText(url.toString()).then(() => {
-                    alert('Weather link copied to clipboard!');
+                    showToast('Weather link copied to clipboard!', 'success');
                 }).catch(() => {
-                    prompt('Copy this link:', url.toString());
+                    // Fallback for older browsers
+                    const textarea = document.createElement('textarea');
+                    textarea.value = url.toString();
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast('Weather link copied to clipboard!', 'success');
+                    } catch (err) {
+                        showToast('Failed to copy link. Please copy manually: ' + url.toString(), 'error');
+                    }
+                    document.body.removeChild(textarea);
                 });
             } else {
-                prompt('Copy this link:', url.toString());
+                // Fallback for browsers without clipboard API
+                const textarea = document.createElement('textarea');
+                textarea.value = url.toString();
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Weather link copied to clipboard!', 'success');
+                } catch (err) {
+                    showToast('Failed to copy link. Please copy manually: ' + url.toString(), 'error');
+                }
+                document.body.removeChild(textarea);
             }
         }
     });
@@ -696,7 +789,7 @@ function addLocationToSaved(city, weatherData) {
     // Check if location already exists
     const exists = savedLocations.some(loc => loc.city.toLowerCase() === city.toLowerCase());
     if (exists) {
-        alert('This location is already saved!');
+        showToast('This location is already saved!', 'warning');
         return;
     }
 
@@ -770,9 +863,8 @@ function renderSavedLocations() {
         const removeBtn = card.querySelector('.remove-location-btn');
         removeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm(`Remove ${location.city} from saved locations?`)) {
-                removeLocationFromSaved(location.city);
-            }
+            removeLocationFromSaved(location.city);
+            showToast(`${location.city} removed from saved locations`, 'success');
         });
 
         savedLocationsList.appendChild(card);
@@ -786,12 +878,13 @@ if(addLocationBtn) {
             try {
                 const weatherData = await getWeatherData(currentCity);
                 addLocationToSaved(currentCity, weatherData);
+                showToast(`${currentCity} added to saved locations!`, 'success');
             } catch(error) {
                 console.error(error);
-                alert('Failed to save location');
+                showToast('Failed to save location', 'error');
             }
         } else {
-            alert('Please search for a city first!');
+            showToast('Please search for a city first!', 'info');
         }
     });
 }
@@ -813,7 +906,7 @@ if(subscribeNewsletterBtn){
             subCityName.textContent = currentCity;
             newsletterModal.style.display = 'block';
         } else {
-            alert('Please search for a city first!');
+            showToast('Please search for a city first!', 'info');
         }
     });
 }
@@ -840,7 +933,7 @@ if(newsletterForm){
         const email = document.getElementById('subEmail').value.trim();
         
         if(!email){
-            alert('Please provide an email address');
+            showToast('Please provide an email address', 'warning');
             return;
         }
         
@@ -859,15 +952,15 @@ if(newsletterForm){
             const data = await response.json();
             
             if(data.success){
-                alert(`✅ Successfully subscribed to daily weather updates for ${currentCity}!`);
+                showToast(`Successfully subscribed to daily weather updates for ${currentCity}!`, 'success');
                 newsletterModal.style.display = 'none';
                 newsletterForm.reset();
             } else {
-                alert('❌ ' + (data.error || 'Subscription failed. Please try again.'));
+                showToast(data.error || 'Subscription failed. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Subscription error:', error);
-            alert('❌ Failed to subscribe. Please check your connection and try again.');
+            showToast('Failed to subscribe. Please check your connection and try again.', 'error');
         }
     });
 }
@@ -883,7 +976,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(loadingContainer) loadingContainer.style.display = 'flex';
         try{
             const weatherData = await getWeatherData(decodeURIComponent(cityFromUrl));
-            displayWeatherInfo(weatherData);
+            
+            // Fetch hourly forecast data (24 hours from Pro API)
+            const forecastData = await getForecast(decodeURIComponent(cityFromUrl));
+            
+            // Fetch daily forecast data (7 days from API)
+            const dailyData = await getDailyForecast(decodeURIComponent(cityFromUrl));
+            
+            displayWeatherInfo(weatherData, dailyData);
+            displayHourlyForecast(forecastData);
+            displayDailyForecast(dailyData);
+            
             if(loadingContainer) loadingContainer.style.display = 'none';
             return;
         } catch(e){
@@ -899,7 +1002,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(loadingContainer) loadingContainer.style.display = 'flex';
         try{
             const weatherData = await getWeatherData(decodeURIComponent(favCity));
-            displayWeatherInfo(weatherData);
+            
+            // Fetch hourly forecast data (24 hours from Pro API)
+            const forecastData = await getForecast(decodeURIComponent(favCity));
+            
+            // Fetch daily forecast data (7 days from API)
+            const dailyData = await getDailyForecast(decodeURIComponent(favCity));
+            
+            displayWeatherInfo(weatherData, dailyData);
+            displayHourlyForecast(forecastData);
+            displayDailyForecast(dailyData);
+            
             if(loadingContainer) loadingContainer.style.display = 'none';
         } catch(e){
             console.error('Failed to load favorite city weather', e);

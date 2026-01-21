@@ -52,7 +52,7 @@ app.get('/weather', async (req, res) => {
   }
 });
 
-// Forecast endpoint (5-day / 3-hour intervals - we'll use this for both hourly and daily)
+// Hourly Forecast endpoint (24 hours using Pro API)
 app.get('/weather/forecast', async (req, res) => {
   try {
     const { city, state, country } = req.query;
@@ -77,8 +77,8 @@ app.get('/weather/forecast', async (req, res) => {
     
     const { lat, lon } = geoData[0];
     
-    // Get 5-day / 3-hour forecast
-    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}`;
+    // Get hourly forecast using Pro API (24 hours)
+    const forecastUrl = `https://pro.openweathermap.org/data/2.5/forecast/hourly?lat=${lat}&lon=${lon}&appid=${apiKey}`;
     const forecastResponse = await fetch(forecastUrl);
     const forecastData = await forecastResponse.json();
     
@@ -89,6 +89,47 @@ app.get('/weather/forecast', async (req, res) => {
     res.json(forecastData);
   } catch (error) {
     console.error('Forecast API error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Daily Forecast endpoint (7 days using Pro API)
+app.get('/weather/forecast/daily', async (req, res) => {
+  try {
+    const { city, state, country } = req.query;
+    const apiKey = process.env.API_KEY;
+    
+    if (!city || !country) {
+      return res.status(400).json({ error: 'City and country are required' });
+    }
+    
+    // Get coordinates from geocoding API
+    const locationQuery = state && country === 'US' 
+      ? `${city},${state},${country}` 
+      : `${city},${country}`;
+    
+    const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`;
+    const geoResponse = await fetch(geoUrl);
+    const geoData = await geoResponse.json();
+    
+    if (!geoResponse.ok || !geoData || geoData.length === 0) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+    
+    const { lat, lon } = geoData[0];
+    
+    // Get 16-day daily forecast using standard API (Developer plan includes this)
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast/daily?lat=${lat}&lon=${lon}&cnt=7&appid=${apiKey}`;
+    const forecastResponse = await fetch(forecastUrl);
+    const forecastData = await forecastResponse.json();
+    
+    if (!forecastResponse.ok) {
+      return res.status(forecastResponse.status).json({ error: 'Daily forecast data not available' });
+    }
+    
+    res.json(forecastData);
+  } catch (error) {
+    console.error('Daily Forecast API error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
