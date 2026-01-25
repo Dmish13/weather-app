@@ -10,19 +10,46 @@ let countryCodes = null;
 let stateCodes = null;
 
 // Load JSON data on startup
-try {
-  const citiesPath = path.join(__dirname, '..', '..', 'frontend', 'cities.json');
-  const countryCodesPath = path.join(__dirname, '..', '..', 'frontend', 'countrycodes.json');
-  const stateCodesPath = path.join(__dirname, '..', '..', 'frontend', 'statecodes.json');
+function loadCitiesData() {
+  if (citiesData) return true;
   
-  if (fs.existsSync(citiesPath)) {
+  try {
+    // Try multiple possible paths for Vercel deployment
+    const possiblePaths = [
+      path.join(__dirname, '..', '..', 'frontend', 'cities.json'),
+      path.join(process.cwd(), 'frontend', 'cities.json'),
+      path.join(__dirname, '..', 'frontend', 'cities.json'),
+      path.join(process.cwd(), 'backend', 'frontend', 'cities.json')
+    ];
+    
+    let citiesPath = null;
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        citiesPath = p;
+        break;
+      }
+    }
+    
+    if (!citiesPath) {
+      console.error('❌ Could not find cities.json in any of the expected locations');
+      console.error('Tried paths:', possiblePaths);
+      console.error('Current working directory:', process.cwd());
+      console.error('__dirname:', __dirname);
+      return false;
+    }
+    
+    const countryCodesPath = citiesPath.replace('cities.json', 'countrycodes.json');
+    const stateCodesPath = citiesPath.replace('cities.json', 'statecodes.json');
+    
     citiesData = JSON.parse(fs.readFileSync(citiesPath, 'utf8'));
     countryCodes = JSON.parse(fs.readFileSync(countryCodesPath, 'utf8'));
     stateCodes = JSON.parse(fs.readFileSync(stateCodesPath, 'utf8'));
-    console.log(`✅ Loaded ${citiesData.length} cities for autocomplete`);
+    console.log(`✅ Loaded ${citiesData.length} cities for autocomplete from ${citiesPath}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to load cities data:', error.message);
+    return false;
   }
-} catch (error) {
-  console.error('❌ Failed to load cities data:', error.message);
 }
 
 // Helper functions
@@ -39,9 +66,14 @@ function getStateName(stateCode, countryCode) {
 
 // Autocomplete endpoint using in-memory search
 router.get('/', (req, res) => {
+  // Try to load data if not already loaded
+  if (!citiesData) {
+    loadCitiesData();
+  }
+  
   if (!citiesData) {
     return res.status(503).json({ 
-      error: 'Cities data not available' 
+      error: 'Cities data not available. Check server logs for details.' 
     });
   }
 
@@ -70,5 +102,8 @@ router.get('/', (req, res) => {
     res.json([]);
   }
 });
+
+// Initialize on module load
+loadCitiesData();
 
 module.exports = router;
