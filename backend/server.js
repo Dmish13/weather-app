@@ -2,7 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const newsletterRoutes = require('./routes/newsletter');
-const citiesRoutes = require('./routes/cities');
+
+// Use Vercel-compatible cities route (no native dependencies)
+let citiesRoutes;
+try {
+  citiesRoutes = require('./routes/cities');
+} catch (error) {
+  console.log('Using Vercel-compatible cities route');
+  citiesRoutes = require('./routes/cities-vercel');
+}
 
 // Start cron jobs for daily weather emails
 require('./jobs/dailyWeather');
