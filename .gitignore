@@ -13,9 +13,10 @@ PRODUCTION_DEPLOYMENT.md
 CITIES_AUTOCOMPLETE_SETUP.md
 backend/testdb.js
 backend/test-server.js
+backend/test-db.js
 backend/start-server.bat
 backend/start-test-server.bat
-backend/data
+backend/test-api.html
 
 
 
