@@ -10,17 +10,22 @@
 <body>
     
     <form class="weatherForm">
-        <div class="form-inputs">
-            <input type="text" class="cityInput" placeholder="Enter City" autocomplete="off" required>
-            <select class="stateSelect" style="display:none">
-                <option value="">State (Optional)</option>
-            </select>
-            <select class="countrySelect" required>
-                <option value="">Select Country</option>
-            </select>
+        <div class="search-container">
+            <input type="text" class="cityInput" placeholder="Search for a city..." autocomplete="off" required>
+            <button type="submit" class="search-icon" title="Search weather">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+            </button>
+            <ul id="suggestions"></ul>
         </div>
-        <button type="submit">Get Weather</button>
-        <ul id="suggestions"></ul>
+        <select class="stateSelect" style="display:none">
+            <option value="">State (Optional)</option>
+        </select>
+        <select class="countrySelect" style="display:none" required>
+            <option value="">Select Country</option>
+        </select>
     </form>
 
     <!-- Loading Spinner -->
