@@ -6,17 +6,17 @@ backend/test-daily-emails.js
 backend/test-single-email.js
 backend/check-subscribers.js
 
+# Database files (no longer used)
+backend/data/
+backend/import-cities.js
+backend/routes/cities.js
+backend/routes/cities-vercel.js
+backend/test-cities-path.js
+
 BREVO_INTEGRATION_GUIDE.md
 CRON_SETUP.md
 FREE_EMAIL_SERVICES.md
 PRODUCTION_DEPLOYMENT.md
-CITIES_AUTOCOMPLETE_SETUP.md
-backend/testdb.js
-backend/test-server.js
-backend/test-db.js
-backend/start-server.bat
-backend/start-test-server.bat
-backend/test-api.html
 
 
 

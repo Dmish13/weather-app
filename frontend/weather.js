@@ -63,14 +63,17 @@ const addLocationBtn = document.getElementById('addLocationBtn');
 let currentCity = null;
 let savedLocations = JSON.parse(localStorage.getItem('savedWeatherLocations') || '[]');
 
+let cities = [];
 let countryCodes = {};
 let stateCodes = {};
 
-// Load country and state codes
+// Load all data
 Promise.all([
+    fetch("cities.json").then(response => response.json()),
     fetch("countrycodes.json").then(response => response.json()),
     fetch("statecodes.json").then(response => response.json())
-]).then(([countryData, stateData]) => {
+]).then(([citiesData, countryData, stateData]) => {
+    cities = citiesData;
     countryCodes = countryData;
     stateCodes = stateData;
     
@@ -144,99 +147,96 @@ countrySelect.addEventListener('change', () => {
     }
 });
 
-// Debounced autocomplete with API
-let autocompleteTimeout;
-cityInput.addEventListener("input", async () => {
-    const query = cityInput.value.trim();
+// Autocomplete with in-memory search
+cityInput.addEventListener("input", () => {
+    const query = cityInput.value.trim().toLowerCase();
 
-    // Clear suggestions immediately
     suggestions.innerHTML = '';
     suggestions.classList.remove('show');
 
     if (query.length < 2) return;
 
-    // Clear previous timeout
-    clearTimeout(autocompleteTimeout);
+    const matches = cities.filter(city => city.name.toLowerCase().startsWith(query))
+        .slice(0, 10);
 
-    // Debounce API call
-    autocompleteTimeout = setTimeout(async () => {
-        try {
-            const response = await fetch(`https://weather-app-seven-liard-75.vercel.app/api/cities?q=${encodeURIComponent(query)}&limit=10`);
-            if (!response.ok) throw new Error('Autocomplete failed');
-            
-            const matches = await response.json();
+    if (matches.length > 0) {
+        suggestions.classList.add('show');
+    }
 
-            // Only show if user hasn't typed something else
-            if (cityInput.value.trim() === query && matches.length > 0) {
-                suggestions.classList.add('show');
-                
-                matches.forEach(city => {
-                    const li = document.createElement('li');
-                    // Find the match position
-                    const cityName = city.name;
-                    const queryLower = query.toLowerCase();
-                    const queryIndex = cityName.toLowerCase().indexOf(queryLower);
+    matches.forEach(city => {
+        const li = document.createElement('li');
+        // Find the match position
+        const cityName = city.name;
+        const queryIndex = cityName.toLowerCase().indexOf(query);
 
-                    // Format location string - only show state/subcountry if it exists
-                    const locationParts = [city.country];
-                    if (city.subcountry) {
-                        locationParts.unshift(city.subcountry);
-                    }
-                    const locationStr = locationParts.join(', ');
-
-                    if (queryIndex !== -1) {
-                        // Split and wrap the matched part in <strong>
-                        const before = cityName.slice(0, queryIndex);
-                        const match = cityName.slice(queryIndex, queryIndex + query.length);
-                        const after = cityName.slice(queryIndex + query.length);
-
-                        li.innerHTML = `${before}<strong>${match}</strong>${after}, ${locationStr}`;
-                    } else {
-                        li.textContent = `${city.name}, ${locationStr}`;
-                    }
-
-                    li.addEventListener('click', async () => {
-                        // Set city name
-                        cityInput.value = city.name;
-                        
-                        // Find and set country code
-                        const countryCode = Object.keys(countryCodes).find(
-                            code => countryCodes[code] === city.country
-                        );
-                        if (countryCode) {
-                            countrySelect.value = countryCode;
-                            // Keep selects hidden; set state value for backend if available
-                            if (countryCode === 'US' && city.subcountry) {
-                                // Try to find state code
-                                const stateCode = Object.keys(stateCodes).find(
-                                    code => stateCodes[code] === city.subcountry
-                                );
-                                if (stateCode) {
-                                    stateSelect.value = stateCode;
-                                } else {
-                                    stateSelect.value = '';
-                                }
-                            } else {
-                                stateSelect.value = '';
-                            }
-                        }
-
-                        suggestions.innerHTML = '';
-                        suggestions.classList.remove('show');
-                        
-                        // Trigger form submission
-                        const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
-                        weatherForm.dispatchEvent(submitEvent);
-                    });
-
-                    suggestions.appendChild(li);
-                });
-            }
-        } catch (error) {
-            console.error('Autocomplete error:', error);
-            // Fail silently - autocomplete is a nice-to-have feature
+        // Format location string based on original format
+        let locationStr;
+        if (city.subcountry) {
+            locationStr = `${city.subcountry}, ${city.country}`;
+        } else if (city.state) {
+            // Map state code to name for US cities
+            const stateName = city.country === 'US' && stateCodes[city.state] 
+                ? stateCodes[city.state] 
+                : city.state;
+            locationStr = stateName ? `${stateName}, ${countryCodes[city.country] || city.country}` : (countryCodes[city.country] || city.country);
+        } else {
+            locationStr = countryCodes[city.country] || city.country;
         }
-    }, 300); // 300ms debounce
+
+        if (queryIndex !== -1) {
+            // Split and wrap the matched part in <strong>
+            const before = cityName.slice(0, queryIndex);
+            const match = cityName.slice(queryIndex, queryIndex + query.length);
+            const after = cityName.slice(queryIndex + query.length);
+
+            li.innerHTML = `${before}<strong>${match}</strong>${after}, ${locationStr}`;
+        } else {
+            li.textContent = `${city.name}, ${locationStr}`;
+        }
+
+        li.addEventListener('click', async () => {
+            // Set city name
+            cityInput.value = city.name;
+            
+            // Handle both old format (subcountry) and new format (state code)
+            const countryCode = city.country.length === 2 ? city.country : Object.keys(countryCodes).find(
+                code => countryCodes[code] === city.country
+            );
+            
+            if (countryCode) {
+                countrySelect.value = countryCode;
+                // Keep selects hidden; set state value for backend if available
+                if (countryCode === 'US') {
+                    if (city.state) {
+                        stateSelect.value = city.state;
+                    } else if (city.subcountry) {
+                        // Try to find state code from subcountry name
+                        const stateCode = Object.keys(stateCodes).find(
+                            code => stateCodes[code] === city.subcountry
+                        );
+                        if (stateCode) {
+                            stateSelect.value = stateCode;
+                        } else {
+                            stateSelect.value = '';
+                        }
+                    } else {
+                        stateSelect.value = '';
+                    }
+                } else {
+                    stateSelect.value = '';
+                }
+            }
+
+            suggestions.innerHTML = '';
+            suggestions.classList.remove('show');
+            
+            // Trigger form submission
+            const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
+            weatherForm.dispatchEvent(submitEvent);
+        });
+
+        suggestions.appendChild(li);
+    });
 });
 
 

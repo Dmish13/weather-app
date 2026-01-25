@@ -3,15 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const newsletterRoutes = require('./routes/newsletter');
 
-// Use Vercel-compatible cities route (no native dependencies)
-let citiesRoutes;
-try {
-  citiesRoutes = require('./routes/cities');
-} catch (error) {
-  console.log('Using Vercel-compatible cities route');
-  citiesRoutes = require('./routes/cities-vercel');
-}
-
 // Start cron jobs for daily weather emails
 require('./jobs/dailyWeather');
 
@@ -145,14 +136,6 @@ app.get('/weather/forecast/daily', async (req, res) => {
 
 // Newsletter API routes
 app.use('/api/newsletter', newsletterRoutes);
-
-// Cities autocomplete API
-app.use('/api/cities', citiesRoutes);
-
-// Test page for cities API
-app.get('/test-cities', (req, res) => {
-  res.sendFile(__dirname + '/test-api.html');
-});
 
 // Cron endpoint for daily weather emails (triggered by cron-job.org)
 const { sendDailyWeatherEmails } = require('./jobs/dailyWeather');
