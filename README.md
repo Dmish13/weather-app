@@ -1,6 +1,7 @@
 # Weather App
 
-<img width="898" height="830" alt="image" src="https://github.com/user-attachments/assets/2d8f53c2-63ea-4d09-b610-9e46a1ac6d70" />
+<img width="755" height="827" alt="image" src="https://github.com/user-attachments/assets/0c4daad2-44de-42eb-b7a4-53a76f90fd3a" />
+
 
 
 ## Features
@@ -20,8 +21,8 @@
 - Uses OpenWeather Geocoding API for accurate location resolution
 
 ### Weather Forecasts
-- **24-Hour Forecast**: Shows weather conditions every 3 hours with temperature and weather icons
-- **6-Day Forecast**: Displays daily weather with separate day and night icons, high/low temperatures, and detailed descriptions
+- **24-Hour Forecast**: Shows weather conditions every hour with temperature and weather icons
+- **7-Day Forecast**: Displays daily weather with separate day and night icons, high/low temperatures, and detailed descriptions
 
 ### Additional Features
 - Save favorite locations
@@ -42,7 +43,8 @@
 - OpenWeather API integration:
   - Geocoding API (city/state/country → coordinates)
   - Current Weather API
-  - 5-day/3-hour Forecast API
+  - 16-day Forecast API
+  - Hourly Forecast API for 4 days
 - Brevo API for newsletter functionality
 - Node-cron for scheduled tasks
 
@@ -83,7 +85,7 @@ Base Code from Bro Code: https://youtu.be/lfmg-EJ8gm4?si=h0hM-UHa1lWqDmji&t=4088
 
 Modified with extensive enhancements including:
 - Geocoding API integration with country/state selection
-- 24-hour and 6-day weather forecasts
+- 24-hour and 7-day weather forecasts
 - Newsletter subscription system
 - Saved locations feature
 - Enhanced UI with modern design
