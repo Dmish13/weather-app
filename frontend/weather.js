@@ -63,6 +63,8 @@ const addLocationBtn = document.getElementById('addLocationBtn');
 let currentCity = null;
 let savedLocations = JSON.parse(localStorage.getItem('savedWeatherLocations') || '[]');
 
+const locationBtn = document.getElementById('locationBtn');
+
 let cities = [];
 let countryCodes = {};
 let stateCodes = {};
@@ -239,6 +241,92 @@ cityInput.addEventListener("input", () => {
     });
 });
 
+// Geolocation Feature
+if (locationBtn) {
+    locationBtn.addEventListener('click', async () => {
+        if (!navigator.geolocation) {
+            showToast('Geolocation is not supported by your browser', 'error');
+            return;
+        }
+
+        // Show loading state
+        locationBtn.disabled = true;
+        locationBtn.style.opacity = '0.6';
+        showToast('Getting your location...', 'info');
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                
+                try {
+                    // Show loading spinner
+                    if(loadingContainer) loadingContainer.style.display = 'flex';
+                    if(card) card.style.display = 'none';
+                    if(headingSection) headingSection.style.display = 'none';
+                    if(actionButtons) actionButtons.style.display = 'none';
+
+                    // Fetch weather using coordinates
+                    const weatherData = await getWeatherDataByCoords(latitude, longitude);
+                    console.log(weatherData);
+                    
+                    // Update the city input with the location name
+                    if (weatherData.name) {
+                        cityInput.value = weatherData.name;
+                    }
+                    
+                    // Fetch forecast data
+                    const forecastData = await getForecastByCoords(latitude, longitude);
+                    console.log(forecastData);
+                    
+                    const dailyData = await getDailyForecastByCoords(latitude, longitude);
+                    console.log(dailyData);
+                    
+                    displayWeatherInfo(weatherData, dailyData);
+                    displayHourlyForecast(forecastData);
+                    displayDailyForecast(dailyData);
+                    
+                    showToast('Weather loaded for your location!', 'success');
+                    
+                    // Hide loading spinner
+                    if(loadingContainer) loadingContainer.style.display = 'none';
+                } catch(error) {
+                    console.error(error);
+                    if(loadingContainer) loadingContainer.style.display = 'none';
+                    showToast('Unable to fetch weather for your location', 'error');
+                    displayError("Sorry, we were unable to fetch weather for your location. Please try again.");
+                } finally {
+                    // Re-enable button
+                    locationBtn.disabled = false;
+                    locationBtn.style.opacity = '1';
+                }
+            },
+            (error) => {
+                // Handle geolocation error
+                let errorMessage = 'Unable to get your location';
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = 'Location permission denied. Please enable location access in your browser settings.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = 'Location information is unavailable.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = 'Location request timed out.';
+                        break;
+                }
+                
+                showToast(errorMessage, 'error');
+                console.error('Geolocation error:', error);
+                
+                // Re-enable button
+                locationBtn.disabled = false;
+                locationBtn.style.opacity = '1';
+            }
+        );
+    });
+}
+
 
 weatherForm.addEventListener("submit", async event => {
     event.preventDefault();
@@ -288,6 +376,42 @@ weatherForm.addEventListener("submit", async event => {
         displayError("Sorry, you either entered an invalid city name, or we were unable to process your request. Please try again.");
     }
 });
+
+// Fetch weather data by coordinates
+async function getWeatherDataByCoords(lat, lon) {
+    const apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather?lat=${lat}&lon=${lon}`;
+    const response = await fetch(apiUrl);
+    
+    if(!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+// Fetch forecast data by coordinates
+async function getForecastByCoords(lat, lon) {
+    const apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather/forecast?lat=${lat}&lon=${lon}`;
+    const response = await fetch(apiUrl);
+    
+    if(!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+// Fetch daily forecast data by coordinates
+async function getDailyForecastByCoords(lat, lon) {
+    const apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather/forecast/daily?lat=${lat}&lon=${lon}`;
+    const response = await fetch(apiUrl);
+    
+    if(!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+}
 
 async function getWeatherData(city, state = '', country = 'US') {
     // Build query parameters

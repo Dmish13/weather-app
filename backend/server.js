@@ -13,31 +13,41 @@ app.use(express.json());
 
 app.get('/weather', async (req, res) => {
   try {
-    const { city, state, country } = req.query;
+    const { city, state, country, lat, lon } = req.query;
     const apiKey = process.env.API_KEY;
     
-    if (!city || !country) {
-      return res.status(400).json({ error: 'City and country are required' });
+    let latitude, longitude;
+    
+    // Check if coordinates are provided directly
+    if (lat && lon) {
+      latitude = lat;
+      longitude = lon;
+    } else {
+      // Otherwise, use city/state/country to get coordinates
+      if (!city || !country) {
+        return res.status(400).json({ error: 'City and country are required, or provide lat and lon' });
+      }
+      
+      // Step 1: Get coordinates from geocoding API
+      // Format: city,state,country for US or city,country for others
+      const locationQuery = state && country === 'US' 
+        ? `${city},${state},${country}` 
+        : `${city},${country}`;
+      
+      const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`;
+      const geoResponse = await fetch(geoUrl);
+      const geoData = await geoResponse.json();
+      
+      if (!geoResponse.ok || !geoData || geoData.length === 0) {
+        return res.status(404).json({ error: 'Location not found' });
+      }
+      
+      latitude = geoData[0].lat;
+      longitude = geoData[0].lon;
     }
-    
-    // Step 1: Get coordinates from geocoding API
-    // Format: city,state,country for US or city,country for others
-    const locationQuery = state && country === 'US' 
-      ? `${city},${state},${country}` 
-      : `${city},${country}`;
-    
-    const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`;
-    const geoResponse = await fetch(geoUrl);
-    const geoData = await geoResponse.json();
-    
-    if (!geoResponse.ok || !geoData || geoData.length === 0) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
-    
-    const { lat, lon } = geoData[0];
     
     // Step 2: Get weather data using coordinates
-    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}`;
+    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}`;
     const weatherResponse = await fetch(weatherUrl);
     const weatherData = await weatherResponse.json();
     
@@ -55,30 +65,40 @@ app.get('/weather', async (req, res) => {
 // Hourly Forecast endpoint (24 hours using Pro API)
 app.get('/weather/forecast', async (req, res) => {
   try {
-    const { city, state, country } = req.query;
+    const { city, state, country, lat, lon } = req.query;
     const apiKey = process.env.API_KEY;
     
-    if (!city || !country) {
-      return res.status(400).json({ error: 'City and country are required' });
+    let latitude, longitude;
+    
+    // Check if coordinates are provided directly
+    if (lat && lon) {
+      latitude = lat;
+      longitude = lon;
+    } else {
+      // Otherwise, use city/state/country to get coordinates
+      if (!city || !country) {
+        return res.status(400).json({ error: 'City and country are required, or provide lat and lon' });
+      }
+      
+      // Get coordinates from geocoding API
+      const locationQuery = state && country === 'US' 
+        ? `${city},${state},${country}` 
+        : `${city},${country}`;
+      
+      const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`;
+      const geoResponse = await fetch(geoUrl);
+      const geoData = await geoResponse.json();
+      
+      if (!geoResponse.ok || !geoData || geoData.length === 0) {
+        return res.status(404).json({ error: 'Location not found' });
+      }
+      
+      latitude = geoData[0].lat;
+      longitude = geoData[0].lon;
     }
-    
-    // Get coordinates from geocoding API
-    const locationQuery = state && country === 'US' 
-      ? `${city},${state},${country}` 
-      : `${city},${country}`;
-    
-    const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`;
-    const geoResponse = await fetch(geoUrl);
-    const geoData = await geoResponse.json();
-    
-    if (!geoResponse.ok || !geoData || geoData.length === 0) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
-    
-    const { lat, lon } = geoData[0];
     
     // Get hourly forecast using Pro API (24 hours)
-    const forecastUrl = `https://pro.openweathermap.org/data/2.5/forecast/hourly?lat=${lat}&lon=${lon}&appid=${apiKey}`;
+    const forecastUrl = `https://pro.openweathermap.org/data/2.5/forecast/hourly?lat=${latitude}&lon=${longitude}&appid=${apiKey}`;
     const forecastResponse = await fetch(forecastUrl);
     const forecastData = await forecastResponse.json();
     
@@ -96,30 +116,40 @@ app.get('/weather/forecast', async (req, res) => {
 // Daily Forecast endpoint (7 days using Pro API)
 app.get('/weather/forecast/daily', async (req, res) => {
   try {
-    const { city, state, country } = req.query;
+    const { city, state, country, lat, lon } = req.query;
     const apiKey = process.env.API_KEY;
     
-    if (!city || !country) {
-      return res.status(400).json({ error: 'City and country are required' });
+    let latitude, longitude;
+    
+    // Check if coordinates are provided directly
+    if (lat && lon) {
+      latitude = lat;
+      longitude = lon;
+    } else {
+      // Otherwise, use city/state/country to get coordinates
+      if (!city || !country) {
+        return res.status(400).json({ error: 'City and country are required, or provide lat and lon' });
+      }
+      
+      // Get coordinates from geocoding API
+      const locationQuery = state && country === 'US' 
+        ? `${city},${state},${country}` 
+        : `${city},${country}`;
+      
+      const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`;
+      const geoResponse = await fetch(geoUrl);
+      const geoData = await geoResponse.json();
+      
+      if (!geoResponse.ok || !geoData || geoData.length === 0) {
+        return res.status(404).json({ error: 'Location not found' });
+      }
+      
+      latitude = geoData[0].lat;
+      longitude = geoData[0].lon;
     }
-    
-    // Get coordinates from geocoding API
-    const locationQuery = state && country === 'US' 
-      ? `${city},${state},${country}` 
-      : `${city},${country}`;
-    
-    const geoUrl = `http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`;
-    const geoResponse = await fetch(geoUrl);
-    const geoData = await geoResponse.json();
-    
-    if (!geoResponse.ok || !geoData || geoData.length === 0) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
-    
-    const { lat, lon } = geoData[0];
     
     // Get 16-day daily forecast using standard API (Developer plan includes this)
-    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast/daily?lat=${lat}&lon=${lon}&cnt=7&appid=${apiKey}`;
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast/daily?lat=${latitude}&lon=${longitude}&cnt=7&appid=${apiKey}`;
     const forecastResponse = await fetch(forecastUrl);
     const forecastData = await forecastResponse.json();
     
