@@ -1,6 +1,7 @@
 # Weather App
 
-<img width="624" height="822" alt="image" src="https://github.com/user-attachments/assets/130497af-e9cd-4d8a-8a4b-905bd5ecde45" />
+<img width="679" height="823" alt="image" src="https://github.com/user-attachments/assets/aa6b124d-82cd-4a04-a5d0-49186433ba56" />
+
 
 
 
@@ -20,6 +21,7 @@
 - Country selection dropdown (all countries supported)
 - US state selection (for US locations)
 - Uses OpenWeather Geocoding API for accurate location resolution
+- Option to find weather for current location
 
 ### Weather Forecasts
 - **24-Hour Forecast**: Shows weather conditions every hour with temperature and weather icons
@@ -53,7 +55,8 @@
 
 ### Weather Endpoints
 - `GET /weather` - Get current weather (requires city, country, optional state)
-- `GET /weather/forecast` - Get 5-day/3-hour forecast data
+- `GET /weather/forecast` - Get 24-hour forecast data
+- `GET /weather/forecast/daily` - Get 7-day forecast data
 
 ### Newsletter Endpoints
 - `POST /api/newsletter/subscribe` - Subscribe to weather updates
