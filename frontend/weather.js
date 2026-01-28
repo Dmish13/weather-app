@@ -61,6 +61,9 @@ const savedLocationsList = document.getElementById('savedLocationsList');
 const addLocationBtn = document.getElementById('addLocationBtn');
 
 let currentCity = null;
+let currentState = '';
+let currentCountry = 'US';
+let currentCoords = null;
 let savedLocations = JSON.parse(localStorage.getItem('savedWeatherLocations') || '[]');
 
 const locationBtn = document.getElementById('locationBtn');
@@ -269,6 +272,13 @@ if (locationBtn) {
                     const weatherData = await getWeatherDataByCoords(latitude, longitude);
                     console.log(weatherData);
                     
+                    // Track state and country from coords (will be available in weatherData)
+                    currentState = '';
+                    currentCountry = weatherData.sys?.country || 'US';
+                    // Store ORIGINAL geolocation coordinates, not the API response coordinates
+                    // This ensures we save the exact location the user was at
+                    currentCoords = { lat: latitude, lon: longitude };
+                    
                     // Update the city input with the location name
                     if (weatherData.name) {
                         cityInput.value = weatherData.name;
@@ -354,6 +364,10 @@ weatherForm.addEventListener("submit", async event => {
     try {
         const weatherData = await getWeatherData(city, state, country);
         console.log(weatherData);
+        
+        // Track current state and country
+        currentState = state;
+        currentCountry = country;
         
         // Fetch hourly forecast data (24 hours from Pro API)
         const forecastData = await getForecast(city, state, country);
@@ -537,6 +551,7 @@ function displayWeatherInfo(data, dailyData){
             main: {temp,humidity,temp_max,temp_min, feels_like}, 
             weather:[{description, icon}],
             sys: {sunrise, sunset},
+            coord,
             timezone} = data;
 
     
@@ -562,6 +577,7 @@ function displayWeatherInfo(data, dailyData){
 
     cityHeading.textContent = city;
     currentCity = city;
+    currentCoords = coord;
     
     // show heading section
     if(headingSection){
@@ -610,8 +626,10 @@ function displayWeatherInfo(data, dailyData){
         todayLow = dailyData.list[0].temp.min;
     }
 
-    lowHighDisplay.textContent = `↑${((todayHigh-273.15)*9/5 +32).toFixed(0)}°    /   ↓${((todayLow-273.15)*9/5 +32).toFixed(0)}°`;
+    const highF = ((todayHigh-273.15)*9/5 +32).toFixed(0);
+    const lowF = ((todayLow-273.15)*9/5 +32).toFixed(0);
 
+    lowHighDisplay.innerHTML = `<span class="daily-high">↑${highF}°</span> <span class="daily-low">↓${lowF}°</span>`;
     lowHighDisplay.classList.add("lowDisplay");
     
 
@@ -925,7 +943,7 @@ function saveSavedLocations() {
     localStorage.setItem('savedWeatherLocations', JSON.stringify(savedLocations));
 }
 
-function addLocationToSaved(city, weatherData) {
+function addLocationToSaved(city, weatherData, state = '', country = 'US', coords = null, dailyData = null) {
     // Check if location already exists
     const exists = savedLocations.some(loc => loc.city.toLowerCase() === city.toLowerCase());
     if (exists) {
@@ -933,9 +951,26 @@ function addLocationToSaved(city, weatherData) {
         return;
     }
 
+    // Use provided coords if available, otherwise fall back to weatherData.coord
+    const locationCoords = coords || weatherData.coord;
+
+    // Determine daily high/low if provided
+    let tempMax = null;
+    let tempMin = null;
+    if (dailyData && dailyData.list && dailyData.list[0] && dailyData.list[0].temp) {
+        tempMax = dailyData.list[0].temp.max;
+        tempMin = dailyData.list[0].temp.min;
+    }
+
     const locationData = {
         city: city,
+        state: state,
+        country: country,
+        lat: locationCoords.lat,
+        lon: locationCoords.lon,
         temp: weatherData.main.temp,
+        tempMax: tempMax,
+        tempMin: tempMin,
         description: weatherData.weather[0].description,
         icon: weatherData.weather[0].icon,
         humidity: weatherData.main.humidity,
@@ -967,28 +1002,74 @@ function renderSavedLocations() {
         const tempF = ((location.temp - 273.15) * 9/5 + 32).toFixed(0);
         const feelsLikeF = ((location.feelsLike - 273.15) * 9/5 + 32).toFixed(0);
 
-        const card = document.createElement('div');
-        card.className = 'location-card';
-        card.innerHTML = `
+        const locationCard = document.createElement('div');
+        locationCard.className = 'location-card';
+        locationCard.innerHTML = `
             <div class="location-card-header">
                 <h3>${location.city}</h3>
                 <button class="remove-location-btn" data-city="${location.city}">×</button>
             </div>
-            <div class="location-card-temp">${tempF}°F</div>
-            <div class="location-card-desc">${location.description}</div>
+            <div class="location-card-row">
+                <div class="location-card-icon">
+                    <img src="https://openweathermap.org/img/wn/${location.icon}@2x.png" alt="${location.description}" class="location-icon" />
+                </div>
+                <div class="location-card-main">
+                    <div class="location-card-temp">${tempF}°F</div>
+                    <div class="location-card-temps">
+                        ${location.tempMax ? `<span class="daily-high">${((location.tempMax-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                        ${location.tempMin ? `<span class="daily-low">${((location.tempMin-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                    </div>
+                    <div class="location-card-desc">${location.description}</div>
+                </div>
+            </div>
             <div class="location-card-details">
-                <span>💧 ${location.humidity}%</span>
+                <span>Humidity: ${location.humidity}%</span>
                 <span>Feels ${feelsLikeF}°</span>
             </div>
         `;
 
         // Click on card to load full weather
-        card.addEventListener('click', async (e) => {
+        locationCard.addEventListener('click', async (e) => {
             if (!e.target.classList.contains('remove-location-btn')) {
                 try {
                     if(loadingContainer) loadingContainer.style.display = 'flex';
-                    const weatherData = await getWeatherData(location.city);
-                    displayWeatherInfo(weatherData);
+                    if(card) card.style.display = 'none';
+                    if(headingSection) headingSection.style.display = 'none';
+                    if(actionButtons) actionButtons.style.display = 'none';
+                    
+                    // Use coordinates if available (for locations saved after this fix)
+                    // Otherwise fall back to city/state/country (for legacy saved locations)
+                    let weatherData, forecastData, dailyData;
+                    
+                    if (location.lat && location.lon) {
+                        weatherData = await getWeatherDataByCoords(location.lat, location.lon);
+                        forecastData = await getForecastByCoords(location.lat, location.lon);
+                        dailyData = await getDailyForecastByCoords(location.lat, location.lon);
+                        // Track the loaded location's data
+                        currentState = location.state || '';
+                        currentCountry = location.country || weatherData.sys?.country || 'US';
+                    } else {
+                        const state = location.state || '';
+                        const country = location.country || 'US';
+                        weatherData = await getWeatherData(location.city, state, country);
+                        forecastData = await getForecast(location.city, state, country);
+                        dailyData = await getDailyForecast(location.city, state, country);
+                        // Track the loaded location's data
+                        currentState = state;
+                        currentCountry = country;
+                    }
+                    
+                    displayWeatherInfo(weatherData, dailyData);
+                    displayHourlyForecast(forecastData);
+                    displayDailyForecast(dailyData);
+                    
+                    // IMPORTANT: Override the city name and coords with the saved location's values
+                    // This ensures we show the location the user originally saved, not what the API returns
+                    currentCity = location.city;
+                    currentCoords = { lat: location.lat, lon: location.lon };
+                    cityHeading.textContent = location.city;
+                    cityInput.value = location.city;
+                    
                     if(loadingContainer) loadingContainer.style.display = 'none';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } catch(error) {
@@ -1000,24 +1081,28 @@ function renderSavedLocations() {
         });
 
         // Remove button
-        const removeBtn = card.querySelector('.remove-location-btn');
+        const removeBtn = locationCard.querySelector('.remove-location-btn');
         removeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             removeLocationFromSaved(location.city);
             showToast(`${location.city} removed from saved locations`, 'success');
         });
 
-        savedLocationsList.appendChild(card);
+        savedLocationsList.appendChild(locationCard);
     });
 }
 
 // Add current location to saved
 if(addLocationBtn) {
     addLocationBtn.addEventListener('click', async () => {
-        if (currentCity) {
+        if (currentCity && currentCoords) {
             try {
-                const weatherData = await getWeatherData(currentCity);
-                addLocationToSaved(currentCity, weatherData);
+                // Fetch fresh weather and daily forecast data to ensure we have highs/lows
+                const freshWeatherData = await getWeatherDataByCoords(currentCoords.lat, currentCoords.lon);
+                const freshDailyData = await getDailyForecastByCoords(currentCoords.lat, currentCoords.lon);
+                
+                // Pass currentCoords (original coordinates) and daily data to ensure we save the exact location and highs/lows
+                addLocationToSaved(currentCity, freshWeatherData, currentState, currentCountry, currentCoords, freshDailyData);
                 showToast(`${currentCity} added to saved locations!`, 'success');
             } catch(error) {
                 console.error(error);

@@ -343,7 +343,7 @@ body::before {
     padding: 40px;
     box-shadow: var(--shadow-lg);
     border-radius: 24px;
-    min-width: 320px;
+    min-width: 250px;
     max-width: 500px;
     display: flex;
     flex-direction: column;
@@ -563,6 +563,62 @@ h1 {
     color: var(--text-secondary);
 }
 
+/* Saved location icon and layout tweaks */
+.location-card-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.location-card-icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.06));
+    border: 1px solid rgba(102,126,234,0.12);
+    box-shadow: 0 6px 16px rgba(16,24,40,0.04);
+}
+
+.location-card-icon .location-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.08));
+}
+
+.location-card-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.location-card-temp {
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.location-card-temps {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.location-card-temps .daily-high {
+    color: #ef4444;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.location-card-temps .daily-low {
+    color: #3b82f6;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
 /* Action buttons */
 .action-buttons {
     display: flex;
@@ -765,7 +821,7 @@ h1 {
     }
 
     .card {
-        padding: 30px 20px;
+        padding: 18px 14px;
         min-width: auto;
         width: 100%;
     }
