@@ -5,7 +5,7 @@ const { subscribeUser, unsubscribeUser } = require('../services/brevoService');
 // Subscribe to newsletter
 router.post('/subscribe', async (req, res) => {
     try {
-        const { email, city } = req.body;
+        const { email, city, lat, lon } = req.body;
         
         if (!email || !city) {
             return res.status(400).json({ 
@@ -23,7 +23,7 @@ router.post('/subscribe', async (req, res) => {
             });
         }
 
-        const result = await subscribeUser(email, city);
+        const result = await subscribeUser(email, city, lat, lon);
         
         if (result.success) {
             res.json({ 

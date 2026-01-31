@@ -51,15 +51,19 @@ async function sendDailyWeatherEmails() {
                 // Fetch weather for subscriber's city
                 const weatherData = await fetchWeatherData(city);
                 
-                // Send email
+                // Get coordinates if stored
+                const lat = subscriber.attributes?.LAT;
+                const lon = subscriber.attributes?.LON;
+                
+                // Send email with coordinates if available
                 await sendWeatherEmail(subscriber.email, city, {
                     temp: weatherData.main.temp,
                     feels_like: weatherData.main.feels_like,
                     description: weatherData.weather[0].description,
                     humidity: weatherData.main.humidity
-                });
+                }, lat, lon);
                 
-                console.log(`Sent weather to ${subscriber.email} for ${city}`);
+                console.log(`Sent weather to ${subscriber.email} for ${city}${lat ? ` (coords: ${lat},${lon})` : ''}`)
                 
                 // Wait 1 second between emails to avoid rate limits
                 await new Promise(resolve => setTimeout(resolve, 1000));

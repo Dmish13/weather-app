@@ -1163,15 +1163,24 @@ if(newsletterForm){
         }
         
         try {
+            // Build subscription data - include coordinates if available for accurate location
+            const subscriptionData = {
+                email: email,
+                city: currentCity
+            };
+            
+            // Include coordinates if we have them (from geolocation)
+            if (currentCoords && currentCoords.lat && currentCoords.lon) {
+                subscriptionData.lat = currentCoords.lat;
+                subscriptionData.lon = currentCoords.lon;
+            }
+            
             const response = await fetch('https://weather-app-seven-liard-75.vercel.app/api/newsletter/subscribe', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    email: email,
-                    city: currentCity
-                })
+                body: JSON.stringify(subscriptionData)
             });
             
             const data = await response.json();
@@ -1195,6 +1204,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check URL parameters first
     const urlParams = new URLSearchParams(window.location.search);
     const cityFromUrl = urlParams.get('city');
+    const latFromUrl = urlParams.get('lat');
+    const lonFromUrl = urlParams.get('lon');
+    
+    // Handle coordinate-based URL (from email links)
+    if(latFromUrl && lonFromUrl){
+        // Show loading spinner for URL param
+        if(loadingContainer) loadingContainer.style.display = 'flex';
+        try{
+            const lat = parseFloat(latFromUrl);
+            const lon = parseFloat(lonFromUrl);
+            
+            const weatherData = await getWeatherDataByCoords(lat, lon);
+            
+            // Store coordinates for potential re-subscription
+            currentCoords = { lat, lon };
+            currentCity = weatherData.name;
+            currentCountry = weatherData.sys?.country || 'US';
+            
+            // Update the city input
+            if (weatherData.name) {
+                cityInput.value = weatherData.name;
+            }
+            
+            // Fetch hourly forecast data
+            const forecastData = await getForecastByCoords(lat, lon);
+            
+            // Fetch daily forecast data
+            const dailyData = await getDailyForecastByCoords(lat, lon);
+            
+            displayWeatherInfo(weatherData, dailyData);
+            displayHourlyForecast(forecastData);
+            displayDailyForecast(dailyData);
+            
+            if(loadingContainer) loadingContainer.style.display = 'none';
+            return;
+        } catch(e){
+            console.error('Failed to load location from URL coordinates', e);
+            if(loadingContainer) loadingContainer.style.display = 'none';
+        }
+    }
     
     if(cityFromUrl){
         // Show loading spinner for URL param

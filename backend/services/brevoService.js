@@ -6,16 +6,24 @@ const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY;
 
 // Subscribe a user to the newsletter
-async function subscribeUser(email, city) {
+async function subscribeUser(email, city, lat = null, lon = null) {
     const apiInstance = new SibApiV3Sdk.ContactsApi();
+    
+    const attributes = {
+        CITY: city,
+        SUBSCRIBED_DATE: new Date().toISOString()
+    };
+    
+    // Store coordinates if provided (for geolocation-based subscriptions)
+    if (lat !== null && lon !== null) {
+        attributes.LAT = lat.toString();
+        attributes.LON = lon.toString();
+    }
     
     const createContact = {
         email: email,
         listIds: [parseInt(process.env.BREVO_LIST_ID)],
-        attributes: {
-            CITY: city,
-            SUBSCRIBED_DATE: new Date().toISOString()
-        },
+        attributes: attributes,
         updateEnabled: true // Update if already exists
     };
 
@@ -49,11 +57,19 @@ async function unsubscribeUser(email) {
 }
 
 // Send a weather update email
-async function sendWeatherEmail(email, city, weatherData) {
+async function sendWeatherEmail(email, city, weatherData, lat = null, lon = null) {
     const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
     
     const tempF = ((weatherData.temp - 273.15) * 9/5 + 32).toFixed(0);
     const feelsLikeF = ((weatherData.feels_like - 273.15) * 9/5 + 32).toFixed(0);
+    
+    // Build the forecast URL - use coordinates if available for accuracy
+    let forecastUrl;
+    if (lat && lon) {
+        forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?lat=${lat}&lon=${lon}`;
+    } else {
+        forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?city=${encodeURIComponent(city)}`;
+    }
     
     const sendSmtpEmail = {
         to: [{ email: email }],
@@ -90,7 +106,7 @@ async function sendWeatherEmail(email, city, weatherData) {
                     </div>
                     <p>Have a great day! 🌤️</p>
                     <p style="text-align: center;">
-                        <a href="https://dmish13.github.io/weather-app/frontend/weather.html?city=${encodeURIComponent(city)}" class="btn">View Full Forecast</a>
+                        <a href="${forecastUrl}" class="btn">View Full Forecast</a>
                     </p>
                 </div>
                 <div class="footer">
