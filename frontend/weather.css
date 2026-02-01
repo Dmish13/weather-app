@@ -417,7 +417,22 @@ body::before {
     padding-top: 16px;
     border-top: 2px solid rgba(0, 0, 0, 0.05);
     width: 100%;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+}
+
+.rise-set-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rise-set-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
 }
 
 p {
@@ -1136,6 +1151,31 @@ h1 {
     background-clip: text;
 }
 
+.hourly-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: black;
+}
+
+/* Sunrise and Sunset cards in hourly forecast */
+.sunrise-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(255, 183, 77, 0.3);
+}
+
+.sunset-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid rgba(255, 138, 101, 0.3);
+}
+
+.sunrise-sunset-icon {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+}
+
 /* Daily Forecast Section */
 .daily-forecast-container {
     z-index: 1;
@@ -1287,6 +1327,16 @@ h1 {
     .hourly-item {
         min-width: 100px;
         padding: 15px;
+    }
+    
+    .riseSetDisplay {
+        gap: 20px;
+        font-size: 0.9rem;
+    }
+    
+    .rise-set-icon {
+        width: 28px;
+        height: 28px;
     }
 }
 

@@ -64,6 +64,9 @@ let currentCity = null;
 let currentState = '';
 let currentCountry = 'US';
 let currentCoords = null;
+let currentTimezone = 0; // timezone offset in seconds from UTC
+let riseTime = null;
+let setTime = null;
 let savedLocations = JSON.parse(localStorage.getItem('savedWeatherLocations') || '[]');
 
 const locationBtn = document.getElementById('locationBtn');
@@ -292,7 +295,7 @@ if (locationBtn) {
                     console.log(dailyData);
                     
                     displayWeatherInfo(weatherData, dailyData);
-                    displayHourlyForecast(forecastData);
+                    displayHourlyForecast(forecastData, dailyData);
                     displayDailyForecast(dailyData);
                     
                     showToast('Weather loaded for your location!', 'success');
@@ -378,7 +381,7 @@ weatherForm.addEventListener("submit", async event => {
         console.log(dailyData);
         
         displayWeatherInfo(weatherData, dailyData);
-        displayHourlyForecast(forecastData);
+        displayHourlyForecast(forecastData, dailyData);
         displayDailyForecast(dailyData);
         
         // Hide loading spinner
@@ -578,6 +581,7 @@ function displayWeatherInfo(data, dailyData){
     cityHeading.textContent = city;
     currentCity = city;
     currentCoords = coord;
+    currentTimezone = timezone;
     
     // show heading section
     if(headingSection){
@@ -654,20 +658,16 @@ function displayWeatherInfo(data, dailyData){
 
     weatherEmoji.classList.add("weatherEmoji");
 
-    const date = new Date();
-    
-    let riseTime;
-
-    let setTime;
-
-   
-    riseTime = new Date((sunrise+(timezone+(date.getTimezoneOffset()*60)))*1000);
-
-    setTime = new Date((sunset+timezone+(date.getTimezoneOffset()*60))*1000);
+    // Convert sunrise/sunset from UTC to location's local time
+    // sunrise and sunset are Unix timestamps in UTC
+    // timezone is the shift in seconds from UTC
+    riseTime = new Date((sunrise + timezone) * 1000);
+    setTime = new Date((sunset + timezone) * 1000);
     
     
 
-    let riseTimeHours = riseTime.getHours();
+    // Times are already in location's timezone, use UTC methods to extract
+    let riseTimeHours = riseTime.getUTCHours();
 
     let riseMeridiem = riseTimeHours>=12 ? "PM":"AM";
 
@@ -678,9 +678,9 @@ function displayWeatherInfo(data, dailyData){
     }
     riseTimeHours = riseTimeHours.toString().padStart(2,0);
 
-    let riseTimeMinutes = riseTime.getMinutes().toString().padStart(2,0);
+    let riseTimeMinutes = riseTime.getUTCMinutes().toString().padStart(2,0);
 
-    let setTimeHours = setTime.getHours();
+    let setTimeHours = setTime.getUTCHours();
 
     let setMeridiem = setTimeHours>=12 ? "PM":"AM";
 
@@ -692,9 +692,18 @@ function displayWeatherInfo(data, dailyData){
 
     setTimeHours = setTimeHours.toString().padStart(2,0);
 
-    let setTimeMinutes = setTime.getMinutes().toString().padStart(2,0);
+    let setTimeMinutes = setTime.getUTCMinutes().toString().padStart(2,0);
 
-    riseSetdisplay.textContent = `🌅 ${riseTimeHours}:${riseTimeMinutes} ${riseMeridiem}       🌇 ${setTimeHours}:${setTimeMinutes} ${setMeridiem}`;
+    riseSetdisplay.innerHTML = `
+        <div class="rise-set-item">
+            <img src="images/sunrise.png" alt="Sunrise" class="rise-set-icon">
+            <span>${riseTimeHours}:${riseTimeMinutes} ${riseMeridiem}</span>
+        </div>
+        <div class="rise-set-item">
+            <img src="images/sunset.png" alt="Sunset" class="rise-set-icon">
+            <span>${setTimeHours}:${setTimeMinutes} ${setMeridiem}</span>
+        </div>
+    `;
 
     riseSetdisplay.classList.add("riseSetDisplay");
 
@@ -765,7 +774,7 @@ function getBackground(icon){
     }
 }
 
-function displayHourlyForecast(data) {
+function displayHourlyForecast(data, dailyData = null) {
     const hourlyContainer = document.querySelector('.hourly-forecast-container');
     const hourlyForecast = document.getElementById('hourlyForecast');
     
@@ -777,14 +786,57 @@ function displayHourlyForecast(data) {
     hourlyForecast.innerHTML = '';
     hourlyContainer.style.display = 'block';
     
-    // Display next 8 intervals (24 hours with 3-hour intervals)
-    data.list.slice(0, 25).forEach(hour => {
+    // Get current time in the location's timezone
+    // Current UTC time + location's timezone offset
+    const nowUTC = Math.floor(Date.now() / 1000); // current time in Unix timestamp (UTC)
+    const nowLocal = new Date((nowUTC + currentTimezone) * 1000);
+    
+    // Get sunrise and sunset times from current data (already in location's timezone)
+    let sunriseTime = currentCoords ? new Date(riseTime) : null;
+    let sunsetTime = currentCoords ? new Date(setTime) : null;
+    
+    // If sunrise/sunset has already passed today, use tomorrow's actual times from daily forecast
+    if (dailyData && dailyData.list && dailyData.list.length > 1) {
+        const tomorrow = dailyData.list[1]; // Second day is tomorrow
+        
+        if (sunriseTime && sunriseTime < nowLocal && tomorrow.sunrise) {
+            // Use tomorrow's actual sunrise time from the daily forecast (in location's timezone)
+            sunriseTime = new Date((tomorrow.sunrise + currentTimezone) * 1000);
+        }
+        
+        if (sunsetTime && sunsetTime < nowLocal && tomorrow.sunset) {
+            // Use tomorrow's actual sunset time from the daily forecast (in location's timezone)
+            sunsetTime = new Date((tomorrow.sunset + currentTimezone) * 1000);
+        }
+    }
+    
+    let sunriseAdded = false;
+    let sunsetAdded = false;
+    
+    // Display next 25 intervals (covering 24 hours)
+    data.list.slice(0, 25).forEach((hour, index) => {
+        // Convert hour timestamp to location's local time
+        const date = new Date((hour.dt + currentTimezone) * 1000);
+        const hours = date.getUTCHours(); // Use UTC methods since we already adjusted for timezone
+        
+        // Check if we need to add sunrise card before this hour
+        if (sunriseTime && !sunriseAdded && sunriseTime < date) {
+            const sunriseCard = createSunriseCard(sunriseTime);
+            hourlyForecast.appendChild(sunriseCard);
+            sunriseAdded = true;
+        }
+        
+        // Check if we need to add sunset card before this hour
+        if (sunsetTime && !sunsetAdded && sunsetTime < date) {
+            const sunsetCard = createSunsetCard(sunsetTime);
+            hourlyForecast.appendChild(sunsetCard);
+            sunsetAdded = true;
+        }
+        
         const hourItem = document.createElement('div');
         hourItem.classList.add('hourly-item');
         
-        // Format time
-        const date = new Date(hour.dt * 1000);
-        const hours = date.getHours();
+        // Format time (hours already in location's timezone)
         const meridiem = hours >= 12 ? 'PM' : 'AM';
         const displayHours = hours % 12 || 12;
         const timeStr = `${displayHours} ${meridiem}`;
@@ -804,6 +856,46 @@ function displayHourlyForecast(data) {
     });
 }
 
+function createSunriseCard(sunriseTime) {
+    const sunriseCard = document.createElement('div');
+    sunriseCard.classList.add('hourly-item', 'sunrise-card');
+    
+    // sunriseTime is already adjusted to location's timezone, use UTC methods
+    const hours = sunriseTime.getUTCHours();
+    const minutes = sunriseTime.getUTCMinutes();
+    const meridiem = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')} ${meridiem}`;
+    
+    sunriseCard.innerHTML = `
+        <div class="hourly-time">${timeStr}</div>
+        <img src="images/sunrise.png" alt="Sunrise" class="hourly-icon sunrise-sunset-icon">
+        <div class="hourly-label">Sunrise</div>
+    `;
+    
+    return sunriseCard;
+}
+
+function createSunsetCard(sunsetTime) {
+    const sunsetCard = document.createElement('div');
+    sunsetCard.classList.add('hourly-item', 'sunset-card');
+    
+    // sunsetTime is already adjusted to location's timezone, use UTC methods
+    const hours = sunsetTime.getUTCHours();
+    const minutes = sunsetTime.getUTCMinutes();
+    const meridiem = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')} ${meridiem}`;
+    
+    sunsetCard.innerHTML = `
+        <div class="hourly-time">${timeStr}</div>
+        <img src="images/sunset.png" alt="Sunset" class="hourly-icon sunrise-sunset-icon">
+        <div class="hourly-label">Sunset</div>
+    `;
+    
+    return sunsetCard;
+}
+
 function displayDailyForecast(data) {
     const dailyContainer = document.querySelector('.daily-forecast-container');
     const dailyForecast = document.getElementById('dailyForecast');
@@ -816,22 +908,28 @@ function displayDailyForecast(data) {
     dailyForecast.innerHTML = '';
     dailyContainer.style.display = 'block';
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get today's date in the location's timezone
+    const nowUTC = Math.floor(Date.now() / 1000);
+    const todayInLocation = new Date((nowUTC + currentTimezone) * 1000);
+    const todayYear = todayInLocation.getUTCFullYear();
+    const todayMonth = todayInLocation.getUTCMonth();
+    const todayDate = todayInLocation.getUTCDate();
     
     // Display 7 days from Pro API
     data.list.forEach((day, index) => {
         const dayRow = document.createElement('div');
         dayRow.classList.add('daily-row');
         
-        const date = new Date(day.dt * 1000);
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        // Convert day.dt to location's timezone
+        const date = new Date((day.dt + currentTimezone) * 1000);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
         
-        // Check if it's today
-        const checkDate = new Date(date);
-        checkDate.setHours(0, 0, 0, 0);
-        const isToday = checkDate.getTime() === today.getTime();
+        // Check if it's today in the location's timezone
+        const dayYear = date.getUTCFullYear();
+        const dayMonth = date.getUTCMonth();
+        const dayDate = date.getUTCDate();
+        const isToday = (dayYear === todayYear && dayMonth === todayMonth && dayDate === todayDate);
         const displayDay = isToday ? 'Today' : dayName;
         
         // Temperatures in Fahrenheit - Pro API daily forecast provides temp object with day, min, max, night, etc.
@@ -1060,7 +1158,7 @@ function renderSavedLocations() {
                     }
                     
                     displayWeatherInfo(weatherData, dailyData);
-                    displayHourlyForecast(forecastData);
+                    displayHourlyForecast(forecastData, dailyData);
                     displayDailyForecast(dailyData);
                     
                     // IMPORTANT: Override the city name and coords with the saved location's values
@@ -1234,7 +1332,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dailyData = await getDailyForecastByCoords(lat, lon);
             
             displayWeatherInfo(weatherData, dailyData);
-            displayHourlyForecast(forecastData);
+            displayHourlyForecast(forecastData, dailyData);
             displayDailyForecast(dailyData);
             
             if(loadingContainer) loadingContainer.style.display = 'none';
@@ -1258,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dailyData = await getDailyForecast(decodeURIComponent(cityFromUrl));
             
             displayWeatherInfo(weatherData, dailyData);
-            displayHourlyForecast(forecastData);
+            displayHourlyForecast(forecastData, dailyData);
             displayDailyForecast(dailyData);
             
             if(loadingContainer) loadingContainer.style.display = 'none';
@@ -1284,7 +1382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dailyData = await getDailyForecast(decodeURIComponent(favCity));
             
             displayWeatherInfo(weatherData, dailyData);
-            displayHourlyForecast(forecastData);
+            displayHourlyForecast(forecastData, dailyData);
             displayDailyForecast(dailyData);
             
             if(loadingContainer) loadingContainer.style.display = 'none';
