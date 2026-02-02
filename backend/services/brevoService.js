@@ -1,23 +1,73 @@
 const SibApiV3Sdk = require('sib-api-v3-sdk');
+const fs = require('fs');
+const path = require('path');
 
-// Configure API client
-const defaultClient = SibApiV3Sdk.ApiClient.instance;
-const apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = process.env.BREVO_API_KEY;
+// Path to store subscriber locations locally
+const SUBSCRIBER_LOCATIONS_FILE = path.join(__dirname, '../data/subscriber-locations.json');
+
+// Helper to read subscriber locations
+function readSubscriberLocations() {
+    try {
+        if (fs.existsSync(SUBSCRIBER_LOCATIONS_FILE)) {
+            const data = fs.readFileSync(SUBSCRIBER_LOCATIONS_FILE, 'utf8');
+            return JSON.parse(data).subscribers || [];
+        }
+    } catch (error) {
+        console.error('Error reading subscriber locations:', error.message);
+    }
+    return [];
+}
+
+// Helper to write subscriber locations
+function writeSubscriberLocations(subscribers) {
+    try {
+        fs.writeFileSync(SUBSCRIBER_LOCATIONS_FILE, JSON.stringify({ subscribers }, null, 2));
+    } catch (error) {
+        console.error('Error writing subscriber locations:', error.message);
+    }
+}
+
+// Helper to save subscriber location
+function saveSubscriberLocation(email, city, lat, lon) {
+    const subscribers = readSubscriberLocations();
+    
+    // Remove old entry if exists
+    const filtered = subscribers.filter(s => s.email !== email);
+    
+    // Add new entry if coordinates are provided
+    if (lat !== null && lon !== null) {
+        filtered.push({ email, city, lat, lon, savedAt: new Date().toISOString() });
+    }
+    
+    writeSubscriberLocations(filtered);
+}
+
+// Helper to get subscriber location
+function getSubscriberLocation(email) {
+    const subscribers = readSubscriberLocations();
+    return subscribers.find(s => s.email === email);
+}
 
 // Subscribe a user to the newsletter
 async function subscribeUser(email, city, lat = null, lon = null) {
     const apiInstance = new SibApiV3Sdk.ContactsApi();
+    
+    // Configure API client
+    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    const apiKey = defaultClient.authentications['api-key'];
+    apiKey.apiKey = process.env.BREVO_API_KEY;
     
     const attributes = {
         CITY: city,
         SUBSCRIBED_DATE: new Date().toISOString()
     };
     
-    // Store coordinates if provided (for geolocation-based subscriptions)
+    // Save coordinates locally (since Brevo doesn't support custom attributes)
     if (lat !== null && lon !== null) {
-        attributes.LAT = lat.toString();
-        attributes.LON = lon.toString();
+        saveSubscriberLocation(email, city, lat, lon);
+        console.log(`✅ Saved coordinates locally for ${email}: LAT=${lat}, LON=${lon}`);
+    } else {
+        console.log(`⚠️ No coordinates provided for ${email} subscribing to ${city}`);
     }
     
     const createContact = {
@@ -132,5 +182,7 @@ async function sendWeatherEmail(email, city, weatherData, lat = null, lon = null
 module.exports = {
     subscribeUser,
     unsubscribeUser,
-    sendWeatherEmail
+    sendWeatherEmail,
+    getSubscriberLocation,
+    saveSubscriberLocation
 };

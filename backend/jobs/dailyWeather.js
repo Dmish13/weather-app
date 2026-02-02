@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const SibApiV3Sdk = require('sib-api-v3-sdk');
 const fetch = require('node-fetch');
-const { sendWeatherEmail } = require('../services/brevoService');
+const { sendWeatherEmail, getSubscriberLocation } = require('../services/brevoService');
 
 // Get all subscribers from Brevo
 async function getAllSubscribers() {
@@ -14,17 +14,33 @@ async function getAllSubscribers() {
     
     try {
         const data = await apiInstance.getContactsFromList(listId, { limit: 500 });
-        return data.contacts || [];
+        const contacts = data.contacts || [];
+        
+        // Log first subscriber's data to debug attributes
+        if (contacts.length > 0) {
+            console.log('\n📋 Sample subscriber data:');
+            console.log(JSON.stringify(contacts[0], null, 2));
+        }
+        
+        return contacts;
     } catch (error) {
         console.error('Error fetching subscribers:', error);
         return [];
     }
 }
 
-// Fetch weather data
-async function fetchWeatherData(city) {
+// Fetch weather data - use coordinates if available for accurate location
+async function fetchWeatherData(city, lat = null, lon = null) {
     const apiKey = process.env.API_KEY;
-    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}`;
+    
+    // Use coordinates if available (more accurate for the exact subscribed location)
+    // Fall back to city name if coordinates are not stored
+    let apiUrl;
+    if (lat && lon) {
+        apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}`;
+    } else {
+        apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}`;
+    }
     
     const response = await fetch(apiUrl);
     if (!response.ok) throw new Error('Weather fetch failed');
@@ -48,12 +64,18 @@ async function sendDailyWeatherEmails() {
                     continue;
                 }
                 
-                // Fetch weather for subscriber's city
-                const weatherData = await fetchWeatherData(city);
+                // Try to get coordinates from local storage
+                let lat = null;
+                let lon = null;
                 
-                // Get coordinates if stored
-                const lat = subscriber.attributes?.LAT;
-                const lon = subscriber.attributes?.LON;
+                const location = getSubscriberLocation(subscriber.email);
+                if (location && location.lat && location.lon) {
+                    lat = location.lat;
+                    lon = location.lon;
+                }
+                
+                // Fetch weather using coordinates if available, otherwise fall back to city name
+                const weatherData = await fetchWeatherData(city, lat, lon);
                 
                 // Send email with coordinates if available
                 await sendWeatherEmail(subscriber.email, city, {
@@ -63,7 +85,7 @@ async function sendDailyWeatherEmails() {
                     humidity: weatherData.main.humidity
                 }, lat, lon);
                 
-                console.log(`Sent weather to ${subscriber.email} for ${city}${lat ? ` (coords: ${lat},${lon})` : ''}`)
+                console.log(`Sent weather to ${subscriber.email} for ${city}${lat ? ` (using coords: ${lat},${lon})` : ' (using city name only)'}`)
                 
                 // Wait 1 second between emails to avoid rate limits
                 await new Promise(resolve => setTimeout(resolve, 1000));

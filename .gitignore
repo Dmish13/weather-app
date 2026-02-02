@@ -12,6 +12,7 @@ backend/import-cities.js
 backend/routes/cities.js
 backend/routes/cities-vercel.js
 backend/test-cities-path.js
+backend/test-subscribe-with-coords.js
 
 BREVO_INTEGRATION_GUIDE.md
 CRON_SETUP.md

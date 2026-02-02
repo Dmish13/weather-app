@@ -7,6 +7,8 @@ router.post('/subscribe', async (req, res) => {
     try {
         const { email, city, lat, lon } = req.body;
         
+        console.log('📋 Subscription request received:', { email, city, lat, lon });
+        
         if (!email || !city) {
             return res.status(400).json({ 
                 success: false,
