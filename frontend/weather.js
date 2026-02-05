@@ -431,51 +431,86 @@ async function getDailyForecastByCoords(lat, lon) {
 }
 
 async function getWeatherData(city, state = '', country = 'US') {
-    // Build query parameters
-    let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
-    
-    if (state && country === 'US') {
-        apiUrl += `&state=${encodeURIComponent(state)}`;
+    // Prefer coordinates when appropriate:
+    // - If no city provided but currentCoords exists, use coords.
+    // - If the requested city matches the currently displayed city and currentCoords exists, use coords (ensures exact location for geolocated subscribers).
+    try {
+        if ((!city || city === '') && currentCoords && Number.isFinite(currentCoords.lat) && Number.isFinite(currentCoords.lon)) {
+            return await getWeatherDataByCoords(currentCoords.lat, currentCoords.lon);
+        }
+
+        if (currentCoords && currentCity && city && city === currentCity && Number.isFinite(currentCoords.lat) && Number.isFinite(currentCoords.lon)) {
+            return await getWeatherDataByCoords(currentCoords.lat, currentCoords.lon);
+        }
+
+        // Fallback to city-based lookup
+        let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
+        if (state && country === 'US') {
+            apiUrl += `&state=${encodeURIComponent(state)}`;
+        }
+
+        const response = await fetch(apiUrl);
+        if(!response.ok) {
+            throw new Error("Could not fetch weather data");
+        }
+
+        return await response.json();
+    } catch (err) {
+        throw err;
     }
-
-    const response = await fetch(apiUrl);
-    console.log(response);
-
-    if(!response.ok) {
-        throw new Error("Could not fetch weather data");
-    }
-
-    return await response.json();
 }
 
 async function getForecast(city, state = '', country = 'US') {
-    let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather/forecast?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
-    
-    if (state && country === 'US') {
-        apiUrl += `&state=${encodeURIComponent(state)}`;
-    }
+    try {
+        // Use coords when appropriate (same rules as getWeatherData)
+        if ((!city || city === '') && currentCoords && Number.isFinite(currentCoords.lat) && Number.isFinite(currentCoords.lon)) {
+            return await getForecastByCoords(currentCoords.lat, currentCoords.lon);
+        }
 
-    const response = await fetch(apiUrl);
-    if(!response.ok) {
-        throw new Error("Could not fetch forecast data");
-    }
+        if (currentCoords && currentCity && city && city === currentCity && Number.isFinite(currentCoords.lat) && Number.isFinite(currentCoords.lon)) {
+            return await getForecastByCoords(currentCoords.lat, currentCoords.lon);
+        }
 
-    return await response.json();
+        let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather/forecast?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
+        if (state && country === 'US') {
+            apiUrl += `&state=${encodeURIComponent(state)}`;
+        }
+
+        const response = await fetch(apiUrl);
+        if(!response.ok) {
+            throw new Error("Could not fetch forecast data");
+        }
+
+        return await response.json();
+    } catch (err) {
+        throw err;
+    }
 }
 
 async function getDailyForecast(city, state = '', country = 'US') {
-    let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather/forecast/daily?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
-    
-    if (state && country === 'US') {
-        apiUrl += `&state=${encodeURIComponent(state)}`;
-    }
+    try {
+        if ((!city || city === '') && currentCoords && Number.isFinite(currentCoords.lat) && Number.isFinite(currentCoords.lon)) {
+            return await getDailyForecastByCoords(currentCoords.lat, currentCoords.lon);
+        }
 
-    const response = await fetch(apiUrl);
-    if(!response.ok) {
-        throw new Error("Could not fetch daily forecast data");
-    }
+        if (currentCoords && currentCity && city && city === currentCity && Number.isFinite(currentCoords.lat) && Number.isFinite(currentCoords.lon)) {
+            return await getDailyForecastByCoords(currentCoords.lat, currentCoords.lon);
+        }
 
-    return await response.json();
+        let apiUrl = `https://weather-app-seven-liard-75.vercel.app/weather/forecast/daily?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
+        if (state && country === 'US') {
+            apiUrl += `&state=${encodeURIComponent(state)}`;
+        }
+
+        const response = await fetch(apiUrl);
+        if(!response.ok) {
+            throw new Error("Could not fetch daily forecast data");
+        }
+
+        return await response.json();
+    } catch (err) {
+        throw err;
+    }
 }
 
 function parseDailyForecast(forecastData) {
@@ -994,8 +1029,17 @@ if(shareButton){
     shareButton.addEventListener('click', () => {
         if(currentCity){
             const url = new URL(window.location.href);
-            url.searchParams.set('city', encodeURIComponent(currentCity));
-            
+            // Prefer coordinates when available to guarantee exact location
+            if (currentCoords && Number.isFinite(currentCoords.lat) && Number.isFinite(currentCoords.lon)) {
+                url.searchParams.set('lat', currentCoords.lat);
+                url.searchParams.set('lon', currentCoords.lon);
+                // include city as a friendly fallback
+                url.searchParams.set('city', currentCity);
+            } else {
+                // Fall back to city name only
+                url.searchParams.set('city', currentCity);
+            }
+
             // Try to use Clipboard API
             if(navigator.clipboard){
                 navigator.clipboard.writeText(url.toString()).then(() => {

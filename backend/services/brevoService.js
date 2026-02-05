@@ -2,6 +2,18 @@ const SibApiV3Sdk = require('sib-api-v3-sdk');
 const fs = require('fs');
 const path = require('path');
 
+// Configure Brevo (Sendinblue) API key globally for all API clients
+try {
+    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    if (defaultClient && defaultClient.authentications && defaultClient.authentications['api-key']) {
+        defaultClient.authentications['api-key'].apiKey = process.env.BREVO_API_KEY || '';
+    } else {
+        console.warn('⚠️ Sib ApiClient auth "api-key" not found. Brevo client may be misconfigured.');
+    }
+} catch (e) {
+    console.warn('⚠️ Failed to configure Brevo API client:', e.message);
+}
+
 // Path to store subscriber locations locally
 const SUBSCRIBER_LOCATIONS_FILE = path.join(__dirname, '../data/subscriber-locations.json');
 
