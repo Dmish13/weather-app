@@ -5,6 +5,15 @@ const path = require('path');
 // Path to store subscriber locations locally
 const SUBSCRIBER_LOCATIONS_FILE = path.join(__dirname, '../data/subscriber-locations.json');
 
+function normalizeCoord(value) {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : null;
+}
+
 // Helper to read subscriber locations
 function readSubscriberLocations() {
     try {
@@ -30,13 +39,15 @@ function writeSubscriberLocations(subscribers) {
 // Helper to save subscriber location
 function saveSubscriberLocation(email, city, lat, lon) {
     const subscribers = readSubscriberLocations();
+    const normalizedLat = normalizeCoord(lat);
+    const normalizedLon = normalizeCoord(lon);
     
     // Remove old entry if exists
     const filtered = subscribers.filter(s => s.email !== email);
     
     // Add new entry if coordinates are provided
-    if (lat !== null && lon !== null) {
-        filtered.push({ email, city, lat, lon, savedAt: new Date().toISOString() });
+    if (normalizedLat !== null && normalizedLon !== null) {
+        filtered.push({ email, city, lat: normalizedLat, lon: normalizedLon, savedAt: new Date().toISOString() });
     }
     
     writeSubscriberLocations(filtered);
@@ -63,9 +74,12 @@ async function subscribeUser(email, city, lat = null, lon = null) {
     };
     
     // Save coordinates locally (since Brevo doesn't support custom attributes)
-    if (lat !== null && lon !== null) {
-        saveSubscriberLocation(email, city, lat, lon);
-        console.log(`✅ Saved coordinates locally for ${email}: LAT=${lat}, LON=${lon}`);
+    const normalizedLat = normalizeCoord(lat);
+    const normalizedLon = normalizeCoord(lon);
+
+    if (normalizedLat !== null && normalizedLon !== null) {
+        saveSubscriberLocation(email, city, normalizedLat, normalizedLon);
+        console.log(`✅ Saved coordinates locally for ${email}: LAT=${normalizedLat}, LON=${normalizedLon}`);
     } else {
         console.log(`⚠️ No coordinates provided for ${email} subscribing to ${city}`);
     }
@@ -115,8 +129,10 @@ async function sendWeatherEmail(email, city, weatherData, lat = null, lon = null
     
     // Build the forecast URL - use coordinates if available for accuracy
     let forecastUrl;
-    if (typeof lat !== 'undefined' && typeof lon !== 'undefined' && lat !== null && lon !== null) {
-        forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?lat=${lat}&lon=${lon}`;
+    const normalizedLat = normalizeCoord(lat);
+    const normalizedLon = normalizeCoord(lon);
+    if (normalizedLat !== null && normalizedLon !== null) {
+        forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?lat=${normalizedLat}&lon=${normalizedLon}&city=${encodeURIComponent(city)}`;
     } else {
         forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?city=${encodeURIComponent(city)}`;
     }
@@ -158,7 +174,7 @@ async function sendWeatherEmail(email, city, weatherData, lat = null, lon = null
                     </div>
                     <p>Have a great day! 🌤️</p>
                     <p style="text-align: center;">
-                        <a href="${forecastUrl}" class="btn">View Full Forecast</a>
+                        <a href="${forecastUrl}" class="btn" style="color: #ffffff; text-decoration: none;">View Full Forecast</a>
                     </p>
                 </div>
                 <div class="footer">

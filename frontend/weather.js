@@ -1304,14 +1304,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const cityFromUrl = urlParams.get('city');
     const latFromUrl = urlParams.get('lat');
     const lonFromUrl = urlParams.get('lon');
+    const parsedLat = latFromUrl !== null ? Number(latFromUrl) : null;
+    const parsedLon = lonFromUrl !== null ? Number(lonFromUrl) : null;
+    const hasValidCoords = Number.isFinite(parsedLat) && Number.isFinite(parsedLon);
     
     // Handle coordinate-based URL (from email links)
-    if(latFromUrl && lonFromUrl){
+    if(hasValidCoords){
         // Show loading spinner for URL param
         if(loadingContainer) loadingContainer.style.display = 'flex';
         try{
-            const lat = parseFloat(latFromUrl);
-            const lon = parseFloat(lonFromUrl);
+            const lat = parsedLat;
+            const lon = parsedLon;
             
             const weatherData = await getWeatherDataByCoords(lat, lon);
             
