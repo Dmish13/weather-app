@@ -69,9 +69,11 @@ async function sendDailyWeatherEmails() {
                 let lon = null;
                 
                 const location = getSubscriberLocation(subscriber.email);
-                if (location && location.lat && location.lon) {
+                if (location && typeof location.lat !== 'undefined' && typeof location.lon !== 'undefined' && location.lat !== null && location.lon !== null) {
                     lat = location.lat;
                     lon = location.lon;
+                } else if (location) {
+                    console.log(`⚠️ Subscriber ${subscriber.email} has location entry but missing lat/lon: ${JSON.stringify(location)}`);
                 }
                 
                 // Fetch weather using coordinates if available, otherwise fall back to city name

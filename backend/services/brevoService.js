@@ -115,11 +115,13 @@ async function sendWeatherEmail(email, city, weatherData, lat = null, lon = null
     
     // Build the forecast URL - use coordinates if available for accuracy
     let forecastUrl;
-    if (lat && lon) {
+    if (typeof lat !== 'undefined' && typeof lon !== 'undefined' && lat !== null && lon !== null) {
         forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?lat=${lat}&lon=${lon}`;
     } else {
         forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?city=${encodeURIComponent(city)}`;
     }
+
+    console.log(`🔗 Forecast URL for ${email}: ${forecastUrl}`);
     
     const sendSmtpEmail = {
         to: [{ email: email }],
