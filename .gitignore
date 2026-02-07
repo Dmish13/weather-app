@@ -5,6 +5,8 @@ node_modules/
 backend/test-daily-emails.js
 backend/test-single-email.js
 backend/check-subscribers.js
+backend/test-post-subscribe.js
+backend/test-subscribe-with-coords.js
 
 # Database files (no longer used)
 backend/data/

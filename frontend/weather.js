@@ -1311,13 +1311,21 @@ if(newsletterForm){
                 city: currentCity
             };
             
-            // Include coordinates if we have them (from geolocation)
-            if (currentCoords && currentCoords.lat && currentCoords.lon) {
-                subscriptionData.lat = currentCoords.lat;
-                subscriptionData.lon = currentCoords.lon;
+            // Include coordinates if we have them (from geolocation) - validate as numbers
+            if (currentCoords && Number.isFinite(Number(currentCoords.lat)) && Number.isFinite(Number(currentCoords.lon))) {
+                subscriptionData.lat = Number(currentCoords.lat);
+                subscriptionData.lon = Number(currentCoords.lon);
             }
             
-            const response = await fetch('https://weather-app-seven-liard-75.vercel.app/api/newsletter/subscribe', {
+            // Determine newsletter endpoint: use local backend during development when served from localhost
+            const NEWSLETTER_ENDPOINT = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? 'http://localhost:9000/api/newsletter/subscribe'
+                : 'https://weather-app-seven-liard-75.vercel.app/api/newsletter/subscribe';
+
+            // DEBUG: log endpoint and payload so we can inspect what is being sent
+            console.log('📨 Newsletter subscribe ->', NEWSLETTER_ENDPOINT, subscriptionData);
+
+            const response = await fetch(NEWSLETTER_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

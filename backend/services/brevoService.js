@@ -139,14 +139,15 @@ async function sendWeatherEmail(email, city, weatherData, lat = null, lon = null
     const tempF = ((weatherData.temp - 273.15) * 9/5 + 32).toFixed(0);
     const feelsLikeF = ((weatherData.feels_like - 273.15) * 9/5 + 32).toFixed(0);
     
-    // Build the forecast URL - use coordinates if available for accuracy
+    // Build the forecast URL - prefer FRONTEND_URL env when deploying to production
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'https://dmish13.github.io/weather-app/frontend';
     let forecastUrl;
     const normalizedLat = normalizeCoord(lat);
     const normalizedLon = normalizeCoord(lon);
     if (normalizedLat !== null && normalizedLon !== null) {
-        forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?lat=${normalizedLat}&lon=${normalizedLon}&city=${encodeURIComponent(city)}`;
+        forecastUrl = `${FRONTEND_URL}/weather.html?lat=${normalizedLat}&lon=${normalizedLon}&city=${encodeURIComponent(city)}`;
     } else {
-        forecastUrl = `https://dmish13.github.io/weather-app/frontend/weather.html?city=${encodeURIComponent(city)}`;
+        forecastUrl = `${FRONTEND_URL}/weather.html?city=${encodeURIComponent(city)}`;
     }
 
     console.log(`🔗 Forecast URL for ${email}: ${forecastUrl}`);

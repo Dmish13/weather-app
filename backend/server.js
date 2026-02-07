@@ -8,8 +8,31 @@ require('./jobs/dailyWeather');
 
 const app = express();
 
-app.use(cors());
+// Configure CORS to allow the frontend origin in production via FRONTEND_URL
+const FRONTEND_URL = process.env.FRONTEND_URL || '';
+if (FRONTEND_URL) {
+  app.use(cors({ origin: FRONTEND_URL }));
+  console.log(`CORS restricted to: ${FRONTEND_URL}`);
+} else {
+  // Default to allow all during local development
+  app.use(cors());
+  console.log('CORS: allowing all origins (no FRONTEND_URL set)');
+}
 app.use(express.json());
+
+// Simple request logger to help debug incoming HTTP requests
+app.use((req, res, next) => {
+  const { method, originalUrl } = req;
+  // Summarize headers (avoid logging authorization values)
+  const safeHeaders = { ...req.headers };
+  if (safeHeaders.authorization) safeHeaders.authorization = '[REDACTED]';
+  console.log(`➡️ Incoming request: ${method} ${originalUrl} — headers: ${JSON.stringify(safeHeaders)}`);
+  // Also show body for POST/PUT (if any)
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+    console.log('   payload:', req.body);
+  }
+  next();
+});
 
 app.get('/weather', async (req, res) => {
   try {
