@@ -15,7 +15,13 @@ try {
 }
 
 // Path to store subscriber locations locally
-const SUBSCRIBER_LOCATIONS_FILE = path.join(__dirname, '../data/subscriber-locations.json');
+const DATA_DIR = path.join(__dirname, '../data');
+const SUBSCRIBER_LOCATIONS_FILE = path.join(DATA_DIR, 'subscriber-locations.json');
+
+// Ensure data directory exists at startup
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
 function normalizeCoord(value) {
     if (value === null || value === undefined || value === '') {
@@ -75,25 +81,24 @@ function getSubscriberLocation(email) {
 async function subscribeUser(email, city, lat = null, lon = null) {
     const apiInstance = new SibApiV3Sdk.ContactsApi();
     
-    // Configure API client
-    const defaultClient = SibApiV3Sdk.ApiClient.instance;
-    const apiKey = defaultClient.authentications['api-key'];
-    apiKey.apiKey = process.env.BREVO_API_KEY;
-    
-    const attributes = {
-        CITY: city,
-        SUBSCRIBED_DATE: new Date().toISOString()
-    };
-    
-    // Save coordinates locally (since Brevo doesn't support custom attributes)
     const normalizedLat = normalizeCoord(lat);
     const normalizedLon = normalizeCoord(lon);
 
+    // Encode coordinates in the CITY attribute so they persist in Brevo
+    // Format: "CityName|lat|lon" when coords available, otherwise just "CityName"
+    let cityValue = city;
+    if (normalizedLat !== null && normalizedLon !== null) {
+        cityValue = `${city}|${normalizedLat}|${normalizedLon}`;
+    }
+
+    const attributes = {
+        CITY: cityValue,
+        SUBSCRIBED_DATE: new Date().toISOString()
+    };
+    
+    // Also save locally as a cache (works on traditional servers, not on Vercel)
     if (normalizedLat !== null && normalizedLon !== null) {
         saveSubscriberLocation(email, city, normalizedLat, normalizedLon);
-        console.log(`✅ Saved coordinates locally for ${email}: LAT=${normalizedLat}, LON=${normalizedLon}`);
-    } else {
-        console.log(`⚠️ No coordinates provided for ${email} subscribing to ${city}`);
     }
     
     const createContact = {

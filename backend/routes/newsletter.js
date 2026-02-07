@@ -1,15 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { subscribeUser, unsubscribeUser } = require('../services/brevoService');
-const fs = require('fs');
-const path = require('path');
-
-// Ensure logs directory exists
-const LOG_DIR = path.join(__dirname, '../logs');
-if (!fs.existsSync(LOG_DIR)) {
-    try { fs.mkdirSync(LOG_DIR); } catch (e) { /* ignore */ }
-}
-const SUBSCRIBE_LOG = path.join(LOG_DIR, 'subscribe.log');
 
 // Subscribe to newsletter
 router.post('/subscribe', async (req, res) => {
@@ -19,21 +10,6 @@ router.post('/subscribe', async (req, res) => {
         // Coerce incoming lat/lon to numbers when present
         const parsedLat = (typeof lat !== 'undefined' && lat !== null && lat !== '') ? Number(lat) : null;
         const parsedLon = (typeof lon !== 'undefined' && lon !== null && lon !== '') ? Number(lon) : null;
-
-        // Log the raw and parsed payload for debugging
-        console.log('📋 Subscription request received:', { raw: req.body, parsed: { email, city, lat: parsedLat, lon: parsedLon } });
-
-        // Also append to a persistent log so you can inspect subscriptions even if console isn't visible
-        try {
-            const entry = {
-                time: new Date().toISOString(),
-                raw: req.body,
-                parsed: { email, city, lat: parsedLat, lon: parsedLon }
-            };
-            fs.appendFileSync(SUBSCRIBE_LOG, JSON.stringify(entry) + '\n');
-        } catch (e) {
-            // non-fatal
-        }
 
         lat = parsedLat;
         lon = parsedLon;

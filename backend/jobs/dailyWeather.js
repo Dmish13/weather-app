@@ -1,6 +1,5 @@
 const cron = require('node-cron');
 const SibApiV3Sdk = require('sib-api-v3-sdk');
-const fetch = require('node-fetch');
 const { sendWeatherEmail, getSubscriberLocation } = require('../services/brevoService');
 
 // Get all subscribers from Brevo
@@ -15,13 +14,6 @@ async function getAllSubscribers() {
     try {
         const data = await apiInstance.getContactsFromList(listId, { limit: 500 });
         const contacts = data.contacts || [];
-        
-        // Log first subscriber's data to debug attributes
-        if (contacts.length > 0) {
-            console.log('\n📋 Sample subscriber data:');
-            console.log(JSON.stringify(contacts[0], null, 2));
-        }
-        
         return contacts;
     } catch (error) {
         console.error('Error fetching subscribers:', error);
@@ -48,6 +40,20 @@ async function fetchWeatherData(city, lat = null, lon = null) {
     return await response.json();
 }
 
+// Parse CITY attribute which may contain encoded coords: "CityName|lat|lon"
+function parseCityAttribute(cityAttr) {
+    if (!cityAttr) return { city: null, lat: null, lon: null };
+    const parts = cityAttr.split('|');
+    if (parts.length === 3) {
+        const lat = Number(parts[1]);
+        const lon = Number(parts[2]);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+            return { city: parts[0], lat, lon };
+        }
+    }
+    return { city: cityAttr, lat: null, lon: null };
+}
+
 // Send daily weather emails
 async function sendDailyWeatherEmails() {
     console.log('Starting daily weather email job...');
@@ -58,22 +64,22 @@ async function sendDailyWeatherEmails() {
         
         for (const subscriber of subscribers) {
             try {
-                const city = subscriber.attributes?.CITY;
-                if (!city) {
+                const rawCity = subscriber.attributes?.CITY;
+                if (!rawCity) {
                     console.log(`Skipping ${subscriber.email} - no city set`);
                     continue;
                 }
                 
-                // Try to get coordinates from local storage
-                let lat = null;
-                let lon = null;
+                // Parse coords from Brevo CITY attribute first (primary source)
+                let { city, lat, lon } = parseCityAttribute(rawCity);
                 
-                const location = getSubscriberLocation(subscriber.email);
-                if (location && typeof location.lat !== 'undefined' && typeof location.lon !== 'undefined' && location.lat !== null && location.lon !== null) {
-                    lat = location.lat;
-                    lon = location.lon;
-                } else if (location) {
-                    console.log(`⚠️ Subscriber ${subscriber.email} has location entry but missing lat/lon: ${JSON.stringify(location)}`);
+                // Fall back to local file if Brevo attribute didn't have coords
+                if (lat === null || lon === null) {
+                    const location = getSubscriberLocation(subscriber.email);
+                    if (location && Number.isFinite(location.lat) && Number.isFinite(location.lon)) {
+                        lat = location.lat;
+                        lon = location.lon;
+                    }
                 }
                 
                 // Fetch weather using coordinates if available, otherwise fall back to city name

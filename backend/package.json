@@ -1,15 +1,18 @@
 {
+  "name": "weather-app-backend",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "node-cron": "^4.2.1",
-    "node-fetch": "^2.7.0",
     "sib-api-v3-sdk": "^8.5.0"
-  }
-  ,
-  "scripts": {
-    "start": "node server.js",
-    "start:prod": "NODE_ENV=production node server.js"
   }
 }

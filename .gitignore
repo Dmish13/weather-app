@@ -1,22 +1,11 @@
 .env
 node_modules/
 
-# Test files
-backend/test-daily-emails.js
-backend/test-single-email.js
-backend/check-subscribers.js
-backend/test-post-subscribe.js
-backend/test-subscribe-with-coords.js
-
-# Database files (no longer used)
+# Local data & logs (re-created at runtime)
 backend/data/
-backend/import-cities.js
-backend/routes/cities.js
-backend/routes/cities-vercel.js
-backend/test-cities-path.js
-backend/test-subscribe-with-coords.js
 backend/logs/
 
+# Guide docs (not needed in production)
 BREVO_INTEGRATION_GUIDE.md
 CRON_SETUP.md
 FREE_EMAIL_SERVICES.md

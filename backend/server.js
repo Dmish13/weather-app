@@ -20,17 +20,9 @@ if (FRONTEND_URL) {
 }
 app.use(express.json());
 
-// Simple request logger to help debug incoming HTTP requests
+// Minimal request logger
 app.use((req, res, next) => {
-  const { method, originalUrl } = req;
-  // Summarize headers (avoid logging authorization values)
-  const safeHeaders = { ...req.headers };
-  if (safeHeaders.authorization) safeHeaders.authorization = '[REDACTED]';
-  console.log(`➡️ Incoming request: ${method} ${originalUrl} — headers: ${JSON.stringify(safeHeaders)}`);
-  // Also show body for POST/PUT (if any)
-  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
-    console.log('   payload:', req.body);
-  }
+  console.log(`${req.method} ${req.originalUrl}`);
   next();
 });
 

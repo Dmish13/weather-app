@@ -1322,9 +1322,6 @@ if(newsletterForm){
                 ? 'http://localhost:9000/api/newsletter/subscribe'
                 : 'https://weather-app-seven-liard-75.vercel.app/api/newsletter/subscribe';
 
-            // DEBUG: log endpoint and payload so we can inspect what is being sent
-            console.log('📨 Newsletter subscribe ->', NEWSLETTER_ENDPOINT, subscriptionData);
-
             const response = await fetch(NEWSLETTER_ENDPOINT, {
                 method: 'POST',
                 headers: {
