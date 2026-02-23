@@ -1141,8 +1141,8 @@ function renderSavedLocations() {
     savedLocationsList.innerHTML = '';
 
     savedLocations.forEach(location => {
-        const tempF = ((location.temp - 273.15) * 9/5 + 32).toFixed(0);
-        const feelsLikeF = ((location.feelsLike - 273.15) * 9/5 + 32).toFixed(0);
+        const tempF = location.temp ? ((location.temp - 273.15) * 9/5 + 32).toFixed(0) : '—';
+        const feelsLikeF = location.feelsLike ? ((location.feelsLike - 273.15) * 9/5 + 32).toFixed(0) : '—';
 
         const locationCard = document.createElement('div');
         locationCard.className = 'location-card';
@@ -1158,17 +1158,81 @@ function renderSavedLocations() {
                 <div class="location-card-main">
                     <div class="location-card-temp">${tempF}°F</div>
                     <div class="location-card-temps">
-                        ${location.tempMax ? `<span class="daily-high">${((location.tempMax-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
-                        ${location.tempMin ? `<span class="daily-low">${((location.tempMin-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                        ${location.tempMax ? `<span class="daily-high">H: ${((location.tempMax-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                        ${location.tempMin ? `<span class="daily-low">L: ${((location.tempMin-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
                     </div>
-                    <div class="location-card-desc">${location.description}</div>
+                    <div class="location-card-desc">${location.description || ''}</div>
+                </div>
+                <div class="location-card-sun-info">
+                    <div class="sunrise-info">
+                        <img src="images/sunrise.png" alt="Sunrise" class="sunrise-icon" />
+                        <span class="sunrise-time">—</span>
+                    </div>
+                    <div class="sunset-info">
+                        <img src="images/sunset.png" alt="Sunset" class="sunset-icon" />
+                        <span class="sunset-time">—</span>
+                    </div>
                 </div>
             </div>
             <div class="location-card-details">
-                <span>Humidity: ${location.humidity}%</span>
-                <span>Feels ${feelsLikeF}°</span>
+                <span class="location-card-humidity">Humidity: ${location.humidity ?? '—'}%</span>
+                <span class="location-card-feels">Feels ${feelsLikeF}°</span>
             </div>
         `;
+
+        // Asynchronously refresh the displayed weather for this saved location
+        (async () => {
+            try {
+                let fresh;
+                if (location.lat && location.lon) {
+                    fresh = await getWeatherDataByCoords(location.lat, location.lon);
+                } else {
+                    fresh = await getWeatherData(location.city, location.state || '', location.country || 'US');
+                }
+
+                if (fresh && fresh.main) {
+                    const newTempF = ((fresh.main.temp - 273.15) * 9/5 + 32).toFixed(0);
+                    const newFeels = ((fresh.main.feels_like - 273.15) * 9/5 + 32).toFixed(0);
+                    const newIcon = fresh.weather && fresh.weather[0] ? fresh.weather[0].icon : null;
+                    const newDesc = fresh.weather && fresh.weather[0] ? fresh.weather[0].description : '';
+                    const newHumidity = fresh.main.humidity;
+
+                    const tempEl = locationCard.querySelector('.location-card-temp');
+                    const descEl = locationCard.querySelector('.location-card-desc');
+                    const iconEl = locationCard.querySelector('.location-icon');
+                    const humidityEl = locationCard.querySelector('.location-card-humidity');
+                    const feelsEl = locationCard.querySelector('.location-card-feels');
+                    const sunriseTimeEl = locationCard.querySelector('.sunrise-time');
+                    const sunsetTimeEl = locationCard.querySelector('.sunset-time');
+
+                    if (tempEl) tempEl.textContent = `${newTempF}°F`;
+                    if (feelsEl) feelsEl.textContent = `Feels ${newFeels}°`;
+                    if (descEl) descEl.textContent = newDesc;
+                    if (iconEl && newIcon) iconEl.src = `https://openweathermap.org/img/wn/${newIcon}@2x.png`;
+                    if (humidityEl) humidityEl.textContent = `Humidity: ${newHumidity}%`;
+
+                    // Update sunrise/sunset times
+                    if (sunriseTimeEl || sunsetTimeEl) {
+                        const tz = typeof fresh.timezone === 'number' ? fresh.timezone : 0;
+                        const sr = fresh.sys && fresh.sys.sunrise ? new Date((fresh.sys.sunrise + tz) * 1000) : null;
+                        const ss = fresh.sys && fresh.sys.sunset ? new Date((fresh.sys.sunset + tz) * 1000) : null;
+                        const formatLocal = (d) => {
+                            if (!d) return '—';
+                            let h = d.getUTCHours();
+                            const m = d.getUTCMinutes().toString().padStart(2, '0');
+                            const mer = h >= 12 ? 'PM' : 'AM';
+                            h = h % 12;
+                            if (h === 0) h = 12;
+                            return `${h}:${m} ${mer}`;
+                        };
+                        if (sunriseTimeEl) sunriseTimeEl.textContent = formatLocal(sr);
+                        if (sunsetTimeEl) sunsetTimeEl.textContent = formatLocal(ss);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to refresh saved location weather:', err);
+            }
+        })();
 
         // Click on card to load full weather
         locationCard.addEventListener('click', async (e) => {

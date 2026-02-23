@@ -539,9 +539,9 @@ h1 {
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 1.5rem;
+    font-size: 2rem;
     cursor: pointer;
-    padding: 4px;
+    padding: 2px;
     line-height: 1;
     transition: all 0.2s ease;
 }
@@ -564,6 +564,7 @@ h1 {
 .location-card-desc {
     font-size: 1rem;
     color: var(--text-secondary);
+    font-weight: 500;
     text-transform: capitalize;
     margin: 4px 0;
 }
@@ -632,6 +633,48 @@ h1 {
     color: #3b82f6;
     font-weight: 600;
     font-size: 1rem;
+}
+
+/* Sunrise / Sunset Info */
+.location-card-sun-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
+.sunrise-info,
+.sunset-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+}
+
+.sunrise-icon,
+.sunset-icon {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+}
+
+.sunrise-time,
+.sunset-time {
+    font-weight: 500;
+    min-width: 60px;
+    color: black;
+}
+
+.location-card-humidity{
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.location-card-feels{
+    font-weight: 500;
+    color: var(--text-secondary);
 }
 
 /* Action buttons */
@@ -839,6 +882,8 @@ h1 {
         padding: 18px 14px;
         min-width: auto;
         width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
     }
 
     .tempDisplay {
