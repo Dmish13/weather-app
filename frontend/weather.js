@@ -1158,8 +1158,8 @@ function renderSavedLocations() {
                 <div class="location-card-main">
                     <div class="location-card-temp">${tempF}°F</div>
                     <div class="location-card-temps">
-                        ${location.tempMax ? `<span class="daily-high">H: ${((location.tempMax-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
-                        ${location.tempMin ? `<span class="daily-low">L: ${((location.tempMin-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                        ${location.tempMax ? `<span class="daily-high"> ${((location.tempMax-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                        ${location.tempMin ? `<span class="daily-low"> ${((location.tempMin-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
                     </div>
                     <div class="location-card-desc">${location.description || ''}</div>
                 </div>
@@ -1183,11 +1183,13 @@ function renderSavedLocations() {
         // Asynchronously refresh the displayed weather for this saved location
         (async () => {
             try {
-                let fresh;
+                let fresh, dailyData;
                 if (location.lat && location.lon) {
                     fresh = await getWeatherDataByCoords(location.lat, location.lon);
+                    dailyData = await getDailyForecastByCoords(location.lat, location.lon);
                 } else {
                     fresh = await getWeatherData(location.city, location.state || '', location.country || 'US');
+                    dailyData = await getDailyForecast(location.city, location.state || '', location.country || 'US');
                 }
 
                 if (fresh && fresh.main) {
@@ -1204,12 +1206,23 @@ function renderSavedLocations() {
                     const feelsEl = locationCard.querySelector('.location-card-feels');
                     const sunriseTimeEl = locationCard.querySelector('.sunrise-time');
                     const sunsetTimeEl = locationCard.querySelector('.sunset-time');
+                    const tempsEl = locationCard.querySelector('.location-card-temps');
 
                     if (tempEl) tempEl.textContent = `${newTempF}°F`;
                     if (feelsEl) feelsEl.textContent = `Feels ${newFeels}°`;
                     if (descEl) descEl.textContent = newDesc;
                     if (iconEl && newIcon) iconEl.src = `https://openweathermap.org/img/wn/${newIcon}@2x.png`;
                     if (humidityEl) humidityEl.textContent = `Humidity: ${newHumidity}%`;
+
+                    // Update high/low temperatures from daily forecast
+                    if (tempsEl && dailyData && dailyData.list && dailyData.list[0] && dailyData.list[0].temp) {
+                        const newHighF = ((dailyData.list[0].temp.max - 273.15) * 9/5 + 32).toFixed(0);
+                        const newLowF = ((dailyData.list[0].temp.min - 273.15) * 9/5 + 32).toFixed(0);
+                        tempsEl.innerHTML = `
+                            <span class="daily-high"> ${newHighF}°</span>
+                            <span class="daily-low"> ${newLowF}°</span>
+                        `;
+                    }
 
                     // Update sunrise/sunset times
                     if (sunriseTimeEl || sunsetTimeEl) {
