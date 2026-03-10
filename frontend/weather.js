@@ -992,8 +992,8 @@ function displayDailyForecast(data) {
             ${iconsHtml}
             <div class="daily-description">${description}</div>
             <div class="daily-temps">
-                <span class="daily-high">${high}°</span>
-                <span class="daily-low">${low}°</span>
+                <span class="daily-high">↑${high}°</span>
+                <span class="daily-low">↓${low}°</span>
             </div>
         `;
         
@@ -1158,8 +1158,8 @@ function renderSavedLocations() {
                 <div class="location-card-main">
                     <div class="location-card-temp">${tempF}°F</div>
                     <div class="location-card-temps">
-                        ${location.tempMax ? `<span class="daily-high"> ${((location.tempMax-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
-                        ${location.tempMin ? `<span class="daily-low"> ${((location.tempMin-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                        ${location.tempMax ? `<span class="daily-high"> ↑${((location.tempMax-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                        ${location.tempMin ? `<span class="daily-low"> ↓${((location.tempMin-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
                     </div>
                     <div class="location-card-desc">${location.description || ''}</div>
                 </div>
@@ -1219,8 +1219,8 @@ function renderSavedLocations() {
                         const newHighF = ((dailyData.list[0].temp.max - 273.15) * 9/5 + 32).toFixed(0);
                         const newLowF = ((dailyData.list[0].temp.min - 273.15) * 9/5 + 32).toFixed(0);
                         tempsEl.innerHTML = `
-                            <span class="daily-high"> ${newHighF}°</span>
-                            <span class="daily-low"> ${newLowF}°</span>
+                            <span class="daily-high"> ↑${newHighF}°</span>
+                            <span class="daily-low"> ↓${newLowF}°</span>
                         `;
                     }
 
