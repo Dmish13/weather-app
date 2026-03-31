@@ -69,6 +69,31 @@ let riseTime = null;
 let setTime = null;
 let savedLocations = JSON.parse(localStorage.getItem('savedWeatherLocations') || '[]');
 
+function updateDocumentTitle(city) {
+    document.title = city ? `${city} Weather` : 'Weather App';
+}
+
+function updateBrowserUrl({ city = '', lat = null, lon = null, replace = false } = {}) {
+    const url = new URL(window.location.href);
+
+    if (city) {
+        url.searchParams.set('city', city);
+    } else {
+        url.searchParams.delete('city');
+    }
+
+    if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))) {
+        url.searchParams.set('lat', Number(lat));
+        url.searchParams.set('lon', Number(lon));
+    } else {
+        url.searchParams.delete('lat');
+        url.searchParams.delete('lon');
+    }
+
+    const historyMethod = replace ? 'replaceState' : 'pushState';
+    window.history[historyMethod]({}, '', url.toString());
+}
+
 const locationBtn = document.getElementById('locationBtn');
 
 let cities = [];
@@ -297,6 +322,12 @@ if (locationBtn) {
                     displayWeatherInfo(weatherData, dailyData);
                     displayHourlyForecast(forecastData, dailyData);
                     displayDailyForecast(dailyData);
+
+                    updateBrowserUrl({
+                        city: weatherData.name || cityInput.value,
+                        lat: latitude,
+                        lon: longitude
+                    });
                     
                     showToast('Weather loaded for your location!', 'success');
                     
@@ -383,6 +414,12 @@ weatherForm.addEventListener("submit", async event => {
         displayWeatherInfo(weatherData, dailyData);
         displayHourlyForecast(forecastData, dailyData);
         displayDailyForecast(dailyData);
+
+        updateBrowserUrl({
+            city: weatherData.name || city,
+            lat: weatherData.coord?.lat,
+            lon: weatherData.coord?.lon
+        });
         
         // Hide loading spinner
         if(loadingContainer) loadingContainer.style.display = 'none';
@@ -617,6 +654,7 @@ function displayWeatherInfo(data, dailyData){
     currentCity = city;
     currentCoords = coord;
     currentTimezone = timezone;
+    updateDocumentTitle(city);
     
     // show heading section
     if(headingSection){
@@ -1022,6 +1060,7 @@ function displayError(message){
     const dailyContainer = document.querySelector('.daily-forecast-container');
     if(hourlyContainer) hourlyContainer.style.display = 'none';
     if(dailyContainer) dailyContainer.style.display = 'none';
+    updateDocumentTitle('');
 }
 
 // Share button functionality
@@ -1288,6 +1327,12 @@ function renderSavedLocations() {
                     currentCoords = { lat: location.lat, lon: location.lon };
                     cityHeading.textContent = location.city;
                     cityInput.value = location.city;
+                    updateDocumentTitle(location.city);
+                    updateBrowserUrl({
+                        city: location.city,
+                        lat: location.lat,
+                        lon: location.lon
+                    });
                     
                     if(loadingContainer) loadingContainer.style.display = 'none';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1463,6 +1508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             displayWeatherInfo(weatherData, dailyData);
             displayHourlyForecast(forecastData, dailyData);
             displayDailyForecast(dailyData);
+            updateBrowserUrl({ city: weatherData.name, lat, lon, replace: true });
             
             if(loadingContainer) loadingContainer.style.display = 'none';
             return;
@@ -1487,6 +1533,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             displayWeatherInfo(weatherData, dailyData);
             displayHourlyForecast(forecastData, dailyData);
             displayDailyForecast(dailyData);
+            updateBrowserUrl({ city: weatherData.name || decodeURIComponent(cityFromUrl), lat: weatherData.coord?.lat, lon: weatherData.coord?.lon, replace: true });
             
             if(loadingContainer) loadingContainer.style.display = 'none';
             return;
@@ -1513,6 +1560,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             displayWeatherInfo(weatherData, dailyData);
             displayHourlyForecast(forecastData, dailyData);
             displayDailyForecast(dailyData);
+            updateBrowserUrl({ city: weatherData.name || decodeURIComponent(favCity), lat: weatherData.coord?.lat, lon: weatherData.coord?.lon, replace: true });
             
             if(loadingContainer) loadingContainer.style.display = 'none';
         } catch(e){
