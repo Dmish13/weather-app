@@ -312,16 +312,13 @@ if (locationBtn) {
                         cityInput.value = weatherData.name;
                     }
                     
-                    // Fetch forecast data
-                    const forecastData = await getForecastByCoords(latitude, longitude);
-                    console.log(forecastData);
-                    
-                    const dailyData = await getDailyForecastByCoords(latitude, longitude);
-                    console.log(dailyData);
-                    
-                    displayWeatherInfo(weatherData, dailyData);
-                    displayHourlyForecast(forecastData, dailyData);
-                    displayDailyForecast(dailyData);
+                    // Only fetch and display current weather (Pro forecast endpoints may be unavailable)
+                    displayWeatherInfo(weatherData, null);
+                    // Hide forecast sections when Pro endpoints are not available
+                    const hourlyContainer = document.querySelector('.hourly-forecast-container');
+                    const dailyContainer = document.querySelector('.daily-forecast-container');
+                    if (hourlyContainer) hourlyContainer.style.display = 'none';
+                    if (dailyContainer) dailyContainer.style.display = 'none';
 
                     updateBrowserUrl({
                         city: weatherData.name || cityInput.value,
@@ -402,18 +399,13 @@ weatherForm.addEventListener("submit", async event => {
         // Track current state and country
         currentState = state;
         currentCountry = country;
-        
-        // Fetch hourly forecast data (24 hours from Pro API)
-        const forecastData = await getForecast(city, state, country);
-        console.log(forecastData);
-        
-        // Fetch daily forecast data (7 days from Pro API)
-        const dailyData = await getDailyForecast(city, state, country);
-        console.log(dailyData);
-        
-        displayWeatherInfo(weatherData, dailyData);
-        displayHourlyForecast(forecastData, dailyData);
-        displayDailyForecast(dailyData);
+
+        // Only display current weather to avoid Pro-only forecast calls
+        displayWeatherInfo(weatherData, null);
+        const hourlyContainer = document.querySelector('.hourly-forecast-container');
+        const dailyContainer = document.querySelector('.daily-forecast-container');
+        if (hourlyContainer) hourlyContainer.style.display = 'none';
+        if (dailyContainer) dailyContainer.style.display = 'none';
 
         updateBrowserUrl({
             city: weatherData.name || city,
@@ -1225,10 +1217,8 @@ function renderSavedLocations() {
                 let fresh, dailyData;
                 if (location.lat && location.lon) {
                     fresh = await getWeatherDataByCoords(location.lat, location.lon);
-                    dailyData = await getDailyForecastByCoords(location.lat, location.lon);
                 } else {
                     fresh = await getWeatherData(location.city, location.state || '', location.country || 'US');
-                    dailyData = await getDailyForecast(location.city, location.state || '', location.country || 'US');
                 }
 
                 if (fresh && fresh.main) {
@@ -1253,15 +1243,7 @@ function renderSavedLocations() {
                     if (iconEl && newIcon) iconEl.src = `https://openweathermap.org/img/wn/${newIcon}@2x.png`;
                     if (humidityEl) humidityEl.textContent = `Humidity: ${newHumidity}%`;
 
-                    // Update high/low temperatures from daily forecast
-                    if (tempsEl && dailyData && dailyData.list && dailyData.list[0] && dailyData.list[0].temp) {
-                        const newHighF = ((dailyData.list[0].temp.max - 273.15) * 9/5 + 32).toFixed(0);
-                        const newLowF = ((dailyData.list[0].temp.min - 273.15) * 9/5 + 32).toFixed(0);
-                        tempsEl.innerHTML = `
-                            <span class="daily-high"> ↑${newHighF}°</span>
-                            <span class="daily-low"> ↓${newLowF}°</span>
-                        `;
-                    }
+                    // High/low not available without Pro daily forecast; leave existing saved values
 
                     // Update sunrise/sunset times
                     if (sunriseTimeEl || sunsetTimeEl) {
@@ -1301,8 +1283,6 @@ function renderSavedLocations() {
                     
                     if (location.lat && location.lon) {
                         weatherData = await getWeatherDataByCoords(location.lat, location.lon);
-                        forecastData = await getForecastByCoords(location.lat, location.lon);
-                        dailyData = await getDailyForecastByCoords(location.lat, location.lon);
                         // Track the loaded location's data
                         currentState = location.state || '';
                         currentCountry = location.country || weatherData.sys?.country || 'US';
@@ -1310,16 +1290,17 @@ function renderSavedLocations() {
                         const state = location.state || '';
                         const country = location.country || 'US';
                         weatherData = await getWeatherData(location.city, state, country);
-                        forecastData = await getForecast(location.city, state, country);
-                        dailyData = await getDailyForecast(location.city, state, country);
                         // Track the loaded location's data
                         currentState = state;
                         currentCountry = country;
                     }
-                    
-                    displayWeatherInfo(weatherData, dailyData);
-                    displayHourlyForecast(forecastData, dailyData);
-                    displayDailyForecast(dailyData);
+
+                    // Only display current weather (no Pro forecast calls)
+                    displayWeatherInfo(weatherData, null);
+                    const hourlyContainer = document.querySelector('.hourly-forecast-container');
+                    const dailyContainer = document.querySelector('.daily-forecast-container');
+                    if (hourlyContainer) hourlyContainer.style.display = 'none';
+                    if (dailyContainer) dailyContainer.style.display = 'none';
                     
                     // IMPORTANT: Override the city name and coords with the saved location's values
                     // This ensures we show the location the user originally saved, not what the API returns
@@ -1361,12 +1342,10 @@ if(addLocationBtn) {
     addLocationBtn.addEventListener('click', async () => {
         if (currentCity && currentCoords) {
             try {
-                // Fetch fresh weather and daily forecast data to ensure we have highs/lows
+                // Fetch fresh current weather (daily highs/lows require Pro endpoints and may not be available)
                 const freshWeatherData = await getWeatherDataByCoords(currentCoords.lat, currentCoords.lon);
-                const freshDailyData = await getDailyForecastByCoords(currentCoords.lat, currentCoords.lon);
-                
-                // Pass currentCoords (original coordinates) and daily data to ensure we save the exact location and highs/lows
-                addLocationToSaved(currentCity, freshWeatherData, currentState, currentCountry, currentCoords, freshDailyData);
+                // Pass currentCoords (original coordinates) to ensure we save the exact location
+                addLocationToSaved(currentCity, freshWeatherData, currentState, currentCountry, currentCoords, null);
                 showToast(`${currentCity} added to saved locations!`, 'success');
             } catch(error) {
                 console.error(error);
@@ -1499,15 +1478,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 cityInput.value = weatherData.name;
             }
             
-            // Fetch hourly forecast data
-            const forecastData = await getForecastByCoords(lat, lon);
-            
-            // Fetch daily forecast data
-            const dailyData = await getDailyForecastByCoords(lat, lon);
-            
-            displayWeatherInfo(weatherData, dailyData);
-            displayHourlyForecast(forecastData, dailyData);
-            displayDailyForecast(dailyData);
+            // Only display current weather (skip Pro-only forecast calls)
+            displayWeatherInfo(weatherData, null);
+            const hourlyContainer = document.querySelector('.hourly-forecast-container');
+            const dailyContainer = document.querySelector('.daily-forecast-container');
+            if (hourlyContainer) hourlyContainer.style.display = 'none';
+            if (dailyContainer) dailyContainer.style.display = 'none';
             updateBrowserUrl({ city: weatherData.name, lat, lon, replace: true });
             
             if(loadingContainer) loadingContainer.style.display = 'none';
@@ -1524,15 +1500,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         try{
             const weatherData = await getWeatherData(decodeURIComponent(cityFromUrl));
             
-            // Fetch hourly forecast data (24 hours from Pro API)
-            const forecastData = await getForecast(decodeURIComponent(cityFromUrl));
-            
-            // Fetch daily forecast data (7 days from API)
-            const dailyData = await getDailyForecast(decodeURIComponent(cityFromUrl));
-            
-            displayWeatherInfo(weatherData, dailyData);
-            displayHourlyForecast(forecastData, dailyData);
-            displayDailyForecast(dailyData);
+            // Only display current weather (skip Pro-only forecast calls)
+            displayWeatherInfo(weatherData, null);
+            const hourlyContainer = document.querySelector('.hourly-forecast-container');
+            const dailyContainer = document.querySelector('.daily-forecast-container');
+            if (hourlyContainer) hourlyContainer.style.display = 'none';
+            if (dailyContainer) dailyContainer.style.display = 'none';
             updateBrowserUrl({ city: weatherData.name || decodeURIComponent(cityFromUrl), lat: weatherData.coord?.lat, lon: weatherData.coord?.lon, replace: true });
             
             if(loadingContainer) loadingContainer.style.display = 'none';
@@ -1551,15 +1524,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         try{
             const weatherData = await getWeatherData(decodeURIComponent(favCity));
             
-            // Fetch hourly forecast data (24 hours from Pro API)
-            const forecastData = await getForecast(decodeURIComponent(favCity));
-            
-            // Fetch daily forecast data (7 days from API)
-            const dailyData = await getDailyForecast(decodeURIComponent(favCity));
-            
-            displayWeatherInfo(weatherData, dailyData);
-            displayHourlyForecast(forecastData, dailyData);
-            displayDailyForecast(dailyData);
+            // Only display current weather (skip Pro-only forecast calls)
+            displayWeatherInfo(weatherData, null);
+            const hourlyContainer = document.querySelector('.hourly-forecast-container');
+            const dailyContainer = document.querySelector('.daily-forecast-container');
+            if (hourlyContainer) hourlyContainer.style.display = 'none';
+            if (dailyContainer) dailyContainer.style.display = 'none';
             updateBrowserUrl({ city: weatherData.name || decodeURIComponent(favCity), lat: weatherData.coord?.lat, lon: weatherData.coord?.lon, replace: true });
             
             if(loadingContainer) loadingContainer.style.display = 'none';
