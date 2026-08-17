@@ -1174,7 +1174,8 @@ function renderSavedLocations() {
     savedLocations.forEach(location => {
         const tempF = location.temp ? ((location.temp - 273.15) * 9/5 + 32).toFixed(0) : '—';
         const feelsLikeF = location.feelsLike ? ((location.feelsLike - 273.15) * 9/5 + 32).toFixed(0) : '—';
-
+        const highF = location.tempMax ? ((location.tempMax - 273.15) * 9/5 + 32).toFixed(0) : '—';
+        const lowF = location.tempMin ? ((location.tempMin - 273.15) * 9/5 + 32).toFixed(0) : '—';
         const locationCard = document.createElement('div');
         locationCard.className = 'location-card';
         locationCard.innerHTML = `
@@ -1189,8 +1190,8 @@ function renderSavedLocations() {
                 <div class="location-card-main">
                     <div class="location-card-temp">${tempF}°F</div>
                     <div class="location-card-temps">
-                        ${location.tempMax ? `<span class="daily-high"> ↑${((location.tempMax-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
-                        ${location.tempMin ? `<span class="daily-low"> ↓${((location.tempMin-273.15)*9/5+32).toFixed(0)}°</span>` : ''}
+                        <span class="daily-high"> ↑${highF}°</span>
+                        <span class="daily-low"> ↓${lowF}°</span>
                     </div>
                     <div class="location-card-desc">${location.description || ''}</div>
                 </div>
@@ -1227,7 +1228,6 @@ function renderSavedLocations() {
                     const newIcon = fresh.weather && fresh.weather[0] ? fresh.weather[0].icon : null;
                     const newDesc = fresh.weather && fresh.weather[0] ? fresh.weather[0].description : '';
                     const newHumidity = fresh.main.humidity;
-
                     const tempEl = locationCard.querySelector('.location-card-temp');
                     const descEl = locationCard.querySelector('.location-card-desc');
                     const iconEl = locationCard.querySelector('.location-icon');
@@ -1243,7 +1243,50 @@ function renderSavedLocations() {
                     if (iconEl && newIcon) iconEl.src = `https://openweathermap.org/img/wn/${newIcon}@2x.png`;
                     if (humidityEl) humidityEl.textContent = `Humidity: ${newHumidity}%`;
 
-                    // High/low not available without Pro daily forecast; leave existing saved values
+                    // Compute highs/lows using same logic as main card:
+                    // 1) prefer dailyData.list[0].temp (if available)
+                    // 2) fall back to fresh.main.temp_max / temp_min (if present)
+                    // 3) fall back to fresh.main.temp for both
+                    try {
+                        // Try to fetch daily forecast (may fail if Pro endpoints unavailable)
+                        try {
+                            if (location.lat && location.lon) {
+                                dailyData = await getDailyForecastByCoords(location.lat, location.lon);
+                            } else {
+                                dailyData = await getDailyForecast(location.city, location.state || '', location.country || 'US');
+                            }
+                        } catch (e) {
+                            dailyData = null;
+                        }
+
+                        let todayHigh = (fresh.main && typeof fresh.main.temp_max === 'number') ? fresh.main.temp_max : fresh.main.temp;
+                        let todayLow = (fresh.main && typeof fresh.main.temp_min === 'number') ? fresh.main.temp_min : fresh.main.temp;
+
+                        if (dailyData && dailyData.list && dailyData.list[0]) {
+                            // dailyData.list[0].temp may be in different shape depending on API
+                            const dayTempObj = dailyData.list[0].temp || dailyData.list[0].main || null;
+                            if (dayTempObj && typeof dayTempObj.max === 'number' && typeof dayTempObj.min === 'number') {
+                                todayHigh = dayTempObj.max;
+                                todayLow = dayTempObj.min;
+                            }
+                        }
+
+                        const newHighF = ((todayHigh - 273.15) * 9/5 + 32).toFixed(0);
+                        const newLowF = ((todayLow - 273.15) * 9/5 + 32).toFixed(0);
+
+                        if (tempsEl) {
+                            tempsEl.innerHTML = `\n                                <span class="daily-high"> ↑${newHighF}°</span>\n                                <span class="daily-low"> ↓${newLowF}°</span>\n                            `;
+                        }
+
+                        // Persist high/low if we got them from dailyData
+                        if (dailyData && dailyData.list && dailyData.list[0]) {
+                            location.tempMax = todayHigh;
+                            location.tempMin = todayLow;
+                            saveSavedLocations();
+                        }
+                    } catch (err) {
+                        console.error('Error computing highs/lows for saved location:', err);
+                    }
 
                     // Update sunrise/sunset times
                     if (sunriseTimeEl || sunsetTimeEl) {
