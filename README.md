@@ -24,10 +24,6 @@
 - Uses OpenWeather Geocoding API for accurate location resolution
 - Option to find weather for current location
 
-### Weather Forecasts
-- **24-Hour Forecast**: Shows weather conditions every hour with temperature and weather icons
-- **7-Day Forecast**: Displays daily weather with separate day and night icons, high/low temperatures, and detailed descriptions
-
 ### Additional Features
 - Save favorite locations
 - Share weather via link
@@ -56,8 +52,6 @@
 
 ### Weather Endpoints
 - `GET /weather` - Get current weather (requires city, country, optional state)
-- `GET /weather/forecast` - Get 24-hour forecast data
-- `GET /weather/forecast/daily` - Get 7-day forecast data
 
 ### Newsletter Endpoints
 - `POST /api/newsletter/subscribe` - Subscribe to weather updates
@@ -90,7 +84,6 @@ Base Code from Bro Code: https://youtu.be/lfmg-EJ8gm4?si=h0hM-UHa1lWqDmji&t=4088
 
 Modified with extensive enhancements including:
 - Geocoding API integration with country/state selection
-- 24-hour and 7-day weather forecasts
 - Newsletter subscription system
 - Saved locations feature
 - Enhanced UI with modern design
